@@ -1,0 +1,1360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Lavista Marketing CRM</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', -apple-system, sans-serif; }
+body { background: #0a0a0f; color: #fff; min-height: 100vh; }
+input, textarea, select, button { font-family: inherit; }
+.login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+.login-box { background: #111118; border: 1px solid #1e1e2e; border-radius: 16px; padding: 40px; width: 340px; box-shadow: 0 25px 50px rgba(0,0,0,0.5); }
+.login-icon { font-size: 40px; text-align: center; margin-bottom: 8px; }
+.login-title { text-align: center; font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+.login-sub { text-align: center; color: #6b7280; font-size: 13px; margin-bottom: 28px; }
+.form-label { color: #9ca3af; font-size: 11px; display: block; margin-bottom: 6px; letter-spacing: 0.5px; text-transform: uppercase; }
+.form-input { width: 100%; background: #1a1a2e; border: 1px solid #2d2d44; border-radius: 8px; padding: 10px 14px; color: #fff; font-size: 14px; outline: none; margin-bottom: 14px; }
+.form-input:focus { border-color: #7c3aed; }
+.btn-login { width: 100%; background: linear-gradient(135deg, #7c3aed, #4f46e5); border: none; border-radius: 8px; padding: 12px; color: #fff; font-size: 15px; font-weight: 600; cursor: pointer; }
+.error-box { background: #2d1a1a; border: 1px solid #7f1d1d; border-radius: 8px; padding: 10px 14px; color: #f87171; font-size: 13px; margin-bottom: 14px; display: none; }
+.hint-box { margin-top: 20px; padding: 14px; background: #0f0f1a; border-radius: 8px; border: 1px solid #1e1e2e; font-size: 12px; color: #9ca3af; line-height: 1.8; }
+.hint-title { color: #6b7280; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; display: block; }
+.app { display: none; flex-direction: column; min-height: 100vh; }
+.header { background: #111118; border-bottom: 1px solid #1e1e2e; padding: 0 24px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.header-brand { font-weight: 800; font-size: 17px; padding: 16px 0; }
+.header-date { color: #4b5563; font-size: 11px; }
+.header-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; flex-shrink: 0; }
+.btn-logout { background: transparent; border: 1px solid #2d2d44; border-radius: 6px; padding: 5px 12px; color: #9ca3af; font-size: 12px; cursor: pointer; }
+.tabs { background: #111118; border-bottom: 1px solid #1e1e2e; padding: 0 24px; display: flex; gap: 4px; overflow-x: auto; }
+.tab-btn { background: transparent; border: none; border-bottom: 2px solid transparent; padding: 12px 16px; color: #6b7280; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.tab-btn.active { color: #a78bfa; border-bottom-color: #7c3aed; }
+.content { padding: 20px; max-width: 1100px; margin: 0 auto; width: 100%; }
+.card { background: #111118; border-radius: 14px; padding: 20px; margin-bottom: 16px; }
+.section-title { font-size: 17px; font-weight: 700; margin-bottom: 16px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+@media(max-width:700px) { .grid2,.grid3 { grid-template-columns: 1fr; } }
+.update-header { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; flex-wrap: wrap; }
+.update-avatar { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; flex-shrink: 0; }
+textarea { width: 100%; background: #1a1a2e; border: 1px solid #2d2d44; border-radius: 8px; padding: 10px 14px; color: #fff; font-size: 13px; min-height: 100px; resize: vertical; outline: none; }
+textarea:focus { border-color: #7c3aed; }
+select { background: #1a1a2e; border: 1px solid #2d2d44; border-radius: 8px; padding: 8px 12px; color: #fff; font-size: 13px; outline: none; }
+.task-input { width: 100%; background: #1a1a2e; border: 1px solid #2d2d44; border-radius: 8px; padding: 8px 14px; color: #fff; font-size: 13px; outline: none; margin-bottom: 8px; }
+.task-input:focus { border-color: #7c3aed; }
+.btn-save { background: linear-gradient(135deg, #7c3aed, #4f46e5); border: none; border-radius: 8px; padding: 10px 24px; color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; }
+.btn-add { background: transparent; border: 1px dashed #2d2d44; border-radius: 8px; padding: 6px 14px; color: #6b7280; font-size: 12px; cursor: pointer; margin-top: 4px; }
+.saved-tag { display: none; color: #16a34a; font-size: 13px; margin-left: 12px; }
+.reminder-banner { background: #1c1400; border: 1px solid #eab30844; border-radius: 10px; padding: 12px 16px; margin-bottom: 20px; color: #fcd34d; font-size: 13px; }
+.alert-banner { background: #2d1a1a; border: 1px solid #ef444444; border-radius: 10px; padding: 12px 16px; margin-bottom: 16px; color: #f87171; font-size: 13px; display: flex; align-items: center; gap: 10px; }
+.client-card { border-radius: 14px; padding: 18px; }
+.progress-bg { background: #00000033; border-radius: 99px; height: 6px; margin-bottom: 14px; }
+.progress-fill { border-radius: 99px; height: 6px; transition: width 0.3s; }
+.counter-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.counter-right { display: flex; align-items: center; gap: 6px; }
+.target-label { color: #9ca3af; font-size: 11px; }
+.btn-minus { background: #ffffff22; border: none; border-radius: 4px; color: #fff; width: 26px; height: 26px; cursor: pointer; font-size: 16px; }
+.btn-plus { border: none; border-radius: 4px; color: #fff; width: 26px; height: 26px; cursor: pointer; font-size: 16px; }
+.count-num { font-weight: 700; font-size: 16px; min-width: 22px; text-align: center; }
+.client-note { width: 100%; background: #00000033; border: 1px solid #ffffff11; border-radius: 8px; padding: 8px 12px; color: #fff; font-size: 12px; min-height: 50px; resize: vertical; outline: none; margin-top: 8px; }
+.stat-card { background: #111118; border-radius: 12px; padding: 16px; text-align: center; }
+.stat-num { font-size: 28px; font-weight: 800; }
+.stat-lbl { color: #9ca3af; font-size: 12px; margin-top: 4px; }
+.member-card { background: #111118; border-radius: 12px; padding: 16px; }
+.member-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.status-badge { font-size: 11px; padding: 3px 8px; border-radius: 99px; white-space: nowrap; }
+.update-block { margin-bottom: 8px; }
+.update-lbl { font-size: 11px; margin-bottom: 3px; }
+.update-txt { color: #d1d5db; font-size: 12px; background: #1a1a2e; border-radius: 6px; padding: 6px 10px; word-break: break-word; }
+.task-line { color: #d1d5db; font-size: 12px; padding: 3px 0 3px 12px; }
+.no-update-txt { color: #4b5563; font-size: 12px; font-style: italic; }
+.refresh-btn { background: #1a1a2e; border: 1px solid #2d2d44; border-radius: 8px; padding: 6px 14px; color: #9ca3af; font-size: 12px; cursor: pointer; }
+.loading { text-align: center; padding: 40px; color: #6b7280; font-size: 14px; }
+/* ATTENDANCE */
+.att-card{background:#111118;border:1px solid #1e1e2e;border-radius:14px;padding:24px;margin-bottom:16px;text-align:center}
+.att-status-icon{font-size:56px;margin-bottom:12px}
+.att-status-text{font-size:20px;font-weight:700;margin-bottom:6px}
+.att-status-sub{color:#6b7280;font-size:13px;margin-bottom:20px}
+.btn-mark-present{background:linear-gradient(135deg,#16a34a,#15803d);border:none;border-radius:12px;padding:16px 40px;color:#fff;font-size:16px;font-weight:700;cursor:pointer;width:100%;max-width:300px}
+.btn-mark-present:disabled{background:#2d2d44;color:#6b7280;cursor:not-allowed}
+.att-info-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px}
+.att-info-box{background:#111118;border-radius:10px;padding:12px;text-align:center}
+.att-info-val{font-size:18px;font-weight:700}
+.att-info-lbl{font-size:11px;color:#6b7280;margin-top:2px}
+.att-row{display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid #1e1e2e;flex-wrap:wrap}
+.att-row:last-child{border-bottom:none}
+.att-name{font-weight:600;font-size:13px;min-width:90px}
+.att-role{font-size:11px;color:#6b7280;min-width:120px}
+.att-badge{font-size:11px;padding:4px 10px;border-radius:99px;font-weight:600;min-width:80px;text-align:center}
+.att-time{font-size:11px;color:#6b7280;margin-left:auto}
+.location-err{background:#2d1a1a;border:1px solid #7f1d1d44;border-radius:10px;padding:12px 16px;color:#f87171;font-size:13px;margin-bottom:16px;display:none}
+.location-err.show{display:block}
+.att-month-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:20px}
+@media(max-width:600px){.att-month-grid{grid-template-columns:repeat(4,1fr)}}
+.att-day-box{border-radius:6px;padding:6px 4px;text-align:center;font-size:10px}
+.att-day-label{font-size:9px;color:#6b7280;margin-bottom:2px}
+.att-day-val{font-weight:700;font-size:11px}
+/* EXPENSES */
+.exp-form{background:#111118;border:1px solid #1e1e2e;border-radius:14px;padding:20px;margin-bottom:20px}
+.exp-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px}
+@media(max-width:700px){.exp-grid{grid-template-columns:1fr}}
+.exp-input{width:100%;background:#1a1a2e;border:1px solid #2d2d44;border-radius:8px;padding:9px 14px;color:#fff;font-size:13px;outline:none}
+.exp-input:focus{border-color:#16a34a}
+.btn-exp{background:linear-gradient(135deg,#16a34a,#15803d);border:none;border-radius:8px;padding:10px 24px;color:#fff;font-size:14px;font-weight:600;cursor:pointer}
+.exp-card{background:#111118;border:1px solid #1e1e2e;border-radius:12px;padding:14px;margin-bottom:10px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.exp-amount{font-size:18px;font-weight:800;color:#4ade80;min-width:90px}
+.exp-amount.advance{color:#f97316}
+.exp-cat{background:#1a1a2e;border-radius:6px;padding:2px 10px;font-size:11px;color:#9ca3af}
+.exp-desc{font-size:13px;color:#e5e7eb;flex:1}
+.exp-date{font-size:11px;color:#4b5563}
+.exp-del{background:#2d1a1a;border:1px solid #7f1d1d;border-radius:6px;padding:3px 8px;color:#f87171;font-size:11px;cursor:pointer;margin-left:auto}
+.summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+.summary-box{background:#111118;border-radius:12px;padding:16px;text-align:center}
+.summary-val{font-size:22px;font-weight:800}
+.summary-lbl{font-size:11px;color:#6b7280;margin-top:4px}
+.month-select{background:#1a1a2e;border:1px solid #2d2d44;border-radius:8px;padding:8px 14px;color:#fff;font-size:13px;outline:none}
+.adv-form{background:#0f1c14;border:1px solid #16a34a44;border-radius:12px;padding:16px;margin-bottom:20px}
+.adv-form-title{font-size:13px;font-weight:700;color:#4ade80;margin-bottom:12px}
+.sync-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #16a34a; margin-right: 6px; animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+.history-filters { display: flex; gap: 12px; align-items: flex-end; margin-bottom: 20px; flex-wrap: wrap; }
+.date-input { background: #1a1a2e; border: 1px solid #2d2d44; border-radius: 8px; padding: 8px 14px; color: #fff; font-size: 13px; outline: none; }
+.filter-btn { background: linear-gradient(135deg, #7c3aed, #4f46e5); border: none; border-radius: 8px; padding: 8px 18px; color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; }
+.history-card { background: #111118; border: 1px solid #1e1e2e; border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+.history-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
+.no-data { text-align: center; padding: 40px; color: #4b5563; font-size: 14px; }
+.emp-filter { background: #1a1a2e; border: 1px solid #2d2d44; border-radius: 8px; padding: 8px 12px; color: #fff; font-size: 13px; outline: none; }
+/* PLANNER */
+.planner-tabs { display: flex; gap: 8px; margin-bottom: 20px; overflow-x: auto; flex-wrap: wrap; }
+.planner-tab { background: #1a1a2e; border: 1px solid #2d2d44; border-radius: 8px; padding: 7px 14px; font-size: 12px; color: #9ca3af; cursor: pointer; white-space: nowrap; }
+.planner-tab.active { background: #2d2d44; color: #fff; border-color: #7c3aed; }
+.planner-section { display: none; }
+.planner-section.active { display: block; }
+.week-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 8px; margin-bottom: 20px; }
+@media(max-width:700px) { .week-grid { grid-template-columns: repeat(3,1fr); } }
+.day-col { background: #111118; border: 1px solid #1e1e2e; border-radius: 10px; padding: 10px 8px; }
+.day-label { font-size: 11px; font-weight: 700; color: #6b7280; text-transform: uppercase; text-align: center; margin-bottom: 8px; }
+.content-pill { font-size: 10px; padding: 3px 7px; border-radius: 99px; text-align: center; margin-bottom: 4px; font-weight: 600; }
+.content-idea { font-size: 11px; color: #9ca3af; margin-bottom: 6px; line-height: 1.4; }
+.content-time { font-size: 10px; color: #4b5563; text-align: center; margin-bottom: 4px; }
+.content-assign { font-size: 10px; color: #7c3aed; text-align: center; margin-bottom: 6px; }
+.post-status { width: 100%; padding: 5px; font-size: 11px; background: #1a1a2e; border: 1px solid #2d2d44; border-radius: 6px; color: #fff; cursor: pointer; margin-bottom: 6px; }
+.client-info-bar { display: flex; align-items: center; gap: 12px; background: #111118; border: 1px solid #1e1e2e; border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; }
+.ci-icon { font-size: 24px; }
+.ci-name { font-size: 15px; font-weight: 700; }
+.ci-meta { font-size: 12px; color: #6b7280; margin-top: 2px; }
+.ci-stats { margin-left: auto; display: flex; gap: 16px; }
+.ci-stat { text-align: center; }
+.ci-stat-num { font-size: 16px; font-weight: 700; }
+.ci-stat-lbl { font-size: 10px; color: #6b7280; }
+.strategy-box { background: #111118; border: 1px solid #1e1e2e; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+.strategy-title { font-size: 13px; font-weight: 700; color: #a78bfa; margin-bottom: 10px; }
+.strategy-item { font-size: 12px; color: #9ca3af; padding: 6px 0; border-bottom: 1px solid #1e1e2e; }
+.strategy-item:last-child { border-bottom: none; }
+.strategy-item b { color: #e5e7eb; }
+/* CAPTION */
+.caption-box { background: #0f0f1a; border: 1px solid #2d2d44; border-radius: 8px; padding: 10px; margin-top: 8px; }
+.caption-label { font-size: 10px; color: #7c3aed; margin-bottom: 4px; font-weight: 600; }
+.caption-text { font-size: 11px; color: #9ca3af; line-height: 1.5; white-space: pre-wrap; }
+.caption-input { width: 100%; background: #111118; border: 1px solid #2d2d44; border-radius: 6px; padding: 6px 10px; color: #fff; font-size: 11px; min-height: 60px; resize: vertical; outline: none; margin-top: 4px; }
+.caption-input:focus { border-color: #7c3aed; }
+.btn-caption { background: #7c3aed22; border: 1px solid #7c3aed44; border-radius: 6px; padding: 4px 10px; color: #a78bfa; font-size: 10px; cursor: pointer; margin-top: 4px; }
+/* SHOOT CHECKLIST */
+.checklist-item { display: flex; align-items: flex-start; gap: 8px; padding: 8px 0; border-bottom: 1px solid #1e1e2e; }
+.checklist-item:last-child { border-bottom: none; }
+.check-cb { width: 16px; height: 16px; accent-color: #7c3aed; cursor: pointer; margin-top: 2px; flex-shrink: 0; }
+.check-label { font-size: 12px; color: #d1d5db; line-height: 1.4; }
+.check-label.done { text-decoration: line-through; color: #4b5563; }
+/* CHART */
+.chart-wrap { background: #111118; border: 1px solid #1e1e2e; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+.chart-title { font-size: 13px; font-weight: 700; margin-bottom: 12px; color: #e5e7eb; }
+</style>
+</head>
+<body>
+
+<div class="login-wrap" id="loginWrap">
+  <div class="login-box">
+    <div class="login-icon">📊</div>
+    <div class="login-title">Lavista Marketing CRM</div>
+    <div class="login-sub">Apna daily evening update yahan submit karo</div>
+    <div class="error-box" id="errBox">Wrong username or password.</div>
+    <label class="form-label">Username</label>
+    <input class="form-input" id="uInp" placeholder="e.g. khushi" autocomplete="username" />
+    <label class="form-label">Password</label>
+    <input class="form-input" id="pInp" type="password" placeholder="Enter password" />
+    <button class="btn-login" id="loginBtn">Sign In →</button>
+    <div class="hint-box">
+      <span class="hint-title">Login Guide</span>
+      Username = apna naam (lowercase)<br>
+      e.g. khushi / twisha / piyush / aman<br>
+      <span style="color:#a78bfa">Admin:</span> admin / lavista@2024
+    </div>
+  </div>
+</div>
+
+<div class="app" id="appWrap">
+  <div class="header">
+    <span class="header-brand">📊 Lavista Marketing CRM</span>
+    <span class="header-date" id="hDate"></span>
+    <span class="sync-dot"></span>
+    <div class="header-right">
+      <div class="avatar" id="hAvatar"></div>
+      <span style="color:#9ca3af;font-size:13px" id="hName"></span>
+      <button class="btn-logout" id="logoutBtn">Logout</button>
+    </div>
+  </div>
+  <div class="tabs" id="tabsRow"></div>
+  <div class="content" id="mainContent"></div>
+</div>
+
+<script>
+const SUPABASE_URL='https://dfduzpsnzruzsdjipgww.supabase.co';
+const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZHV6cHNuenJ1enNkamlwZ3d3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyMTA3NTEsImV4cCI6MjA5Nzc4Njc1MX0.5jIgdYKzFGRDZ2wfrn290zkSPumhs1goC1ekhWdO68I';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+
+// Default passwords ONLY used until Deep Sir sets custom password in admin panel
+const USERS=[
+  {id:"admin",name:"Deep Sir",role:"Owner",pass:"deep@2409",isAdmin:true,dept:"Management",locked:true},
+  {id:"piyush",name:"Piyush",role:"SM Manager",pass:"changeme",dept:"Management"},
+  {id:"khushi",name:"Khushi",role:"SM Executive",pass:"changeme",dept:"Content"},
+  {id:"twisha",name:"Twisha",role:"SM Executive",pass:"changeme",dept:"Content"},
+  {id:"avishi",name:"Avishi",role:"Social Media Handler",pass:"changeme",dept:"Content"},
+  {id:"vandita",name:"Vandita",role:"Sales Executive",pass:"changeme",dept:"Sales"},
+  {id:"jinal",name:"Jinal",role:"Sales Executive",pass:"changeme",dept:"Sales"},
+  {id:"shilpi",name:"Shilpi",role:"Scalixo Sales Executive",pass:"changeme",dept:"Sales"},
+  {id:"suhanshi",name:"Suhanshi",role:"Scalixo Sales Executive",pass:"changeme",dept:"Sales"},
+  {id:"aman",name:"Aman",role:"Web Developer",pass:"changeme",dept:"Tech"},
+  {id:"akshay",name:"Akshay",role:"Video Editor",pass:"changeme",dept:"Creative"},
+  {id:"nihal",name:"Nihal",role:"Videographer",pass:"changeme",dept:"Creative"},
+  {id:"nayan",name:"Nayan",role:"Videographer",pass:"changeme",dept:"Creative"},
+];
+
+const CLIENTS=[
+  {id:"creata",name:"Creata Buildcon",color:"#f97316",bg:"#1a0a00",icon:"🏗️",t:{reels:3,carousels:2,posts:2,stories:7}},
+  {id:"nityam",name:"Nityam Harmony",color:"#ec4899",bg:"#1a0010",icon:"🏠",t:{reels:3,carousels:2,posts:2,stories:7}},
+  {id:"scalixo",name:"Scalixo Media",color:"#14b8a6",bg:"#001a18",icon:"📱",t:{reels:4,carousels:2,posts:3,stories:7}},
+  {id:"lavista",name:"Lavista Marketing",color:"#eab308",bg:"#1a1200",icon:"🚀",t:{reels:3,carousels:3,posts:2,stories:7}},
+  {id:"lavista_est",name:"Lavista Estate",color:"#a78bfa",bg:"#0d0a1a",icon:"🏆",t:{reels:3,carousels:1,posts:2,stories:7}},
+];
+
+const WEEKLY_PLAN={
+  creata:[
+    {day:"Mon",type:"Reel",idea:"Site walkthrough — Odhav industrial hub",time:"7-9 PM",assign:"Khushi",caption:"Ahmedabad ka next business hub aa gaya! 🏗️ Creata Trade Centre, Odhav — Premium shops, showrooms & warehouses. Direct builder deal. DM SITE for visit! #CreataBuildcon #AhmedabadProperty",script:"Opening: Aerial/front shot of site\nVoiceover: 'Odhav me ban raha hai Ahmedabad ka next business hub...'\nMid: Walk through amenities, parking, units\nEnd: Price range + CTA"},
+    {day:"Tue",type:"Post",idea:"Property highlight — shop/showroom details",time:"10-11 AM",assign:"Twisha",caption:"📍 Premium Commercial Space | Odhav, Ahmedabad\n✅ Shop | Showroom | Warehouse\n✅ Direct Builder Deal\n✅ Prime Location\nDM VISIT for more details! #CommercialProperty #Odhav",script:"Single graphic: Property photo + key specs overlay\nText: Size options, price range, USPs\nBottom: Contact + logo"},
+    {day:"Wed",type:"Carousel",idea:"5 reasons to invest in Odhav commercial",time:"12-1 PM",assign:"Khushi",caption:"5 reasons kyun Odhav me commercial property lena smart decision hai! 💡 Swipe karo 👉 #Investment #AhmedabadCommercial",script:"Slide 1: Hook - '5 Reasons to invest in Odhav'\nSlide 2: Location connectivity\nSlide 3: Growing industrial zone\nSlide 4: Price appreciation\nSlide 5: Builder credibility\nSlide 6: CTA - 'DM SITE'"},
+    {day:"Thu",type:"Story",idea:"Construction update + poll",time:"Anytime",assign:"Twisha",caption:"Story only — no caption needed",script:"Story 1: Construction progress photo\nStory 2: Poll 'Showroom chahiye ya Warehouse?'\nStory 3: 'DM karo for price list 📋'"},
+    {day:"Fri",type:"Reel",idea:"Industrial property investment 2025",time:"7-9 PM",assign:"Khushi",caption:"2025 me industrial property kyun leni chahiye? 🏭 Watch till end! #IndustrialProperty #Investment #Ahmedabad",script:"Hook: 'Ye galti mat karna...'\nPoint 1: Rising demand for industrial space\nPoint 2: Odhav location advantage\nPoint 3: Price before possession\nCTA: 'DM INVEST for details'"},
+    {day:"Sat",type:"Post",idea:"Location & connectivity highlights",time:"10-11 AM",assign:"Twisha",caption:"📍 Creata Trade Centre — Perfectly connected! 🔗\nOdhav • NH proximity • Metro route\nYour business deserves the best location. DM today! #OdhavAhmedabad",script:"Map graphic showing connectivity\nHighlight: Road, highway, metro proximity\nBranding overlay"},
+    {day:"Sun",type:"Story",idea:"Countdown to launch / enquiry CTA",time:"Anytime",assign:"Khushi",caption:"Story only",script:"Story: 'Limited units remaining! DM now'\nStory: Enquiry link / contact number\nStory: Site photo with price teaser"},
+  ],
+  nityam:[
+    {day:"Mon",type:"Carousel",idea:"Nityam Harmony vs ordinary flat — comparison",time:"12-1 PM",assign:"Twisha",caption:"Nityam Harmony aur ordinary flat me kya farak hai? 🏠 Swipe karo aur khud decide karo! #NityamHarmony #LuxuryLiving #Ahmedabad",script:"Slide 1: 'Ordinary Flat vs Nityam Harmony'\nSlide 2-6: Feature comparison (amenities, design, location, quality, value)\nSlide 7: CTA 'Book site visit'"},
+    {day:"Tue",type:"Reel",idea:"3BHK dream home tour — cinematic",time:"7-9 PM",assign:"Khushi",caption:"Ye hai aapka dream home 🏡 Nityam Harmony 3BHK — har cheez perfect. DM VISIT for site tour! #DreamHome #3BHK #NityamHarmony",script:"Slow cinematic walk: entrance → living room → kitchen → bedroom → balcony view\nSoft background music\nText overlays: key features\nEnd: Price + CTA"},
+    {day:"Wed",type:"Post",idea:"Buyer testimonial — happy family story",time:"10-11 AM",assign:"Twisha",caption:"'Hamara ghar, hamari khushi' ❤️ Our happy homeowners at Nityam Harmony. Your dream home awaits! DM HOME. #HappyHomeowners #NityamHarmony",script:"Family photo (with permission)\nQuote overlay: short testimonial\nProperty + logo branding"},
+    {day:"Thu",type:"Reel",idea:"Amenities showcase — pool, gym, garden",time:"7-9 PM",assign:"Khushi",caption:"Sirf ghar nahi — ek poora lifestyle! 🏊 Pool | 💪 Gym | 🌳 Garden\nNityam Harmony me aapka wait kar raha hai. DM LIFESTYLE! #Amenities #LuxuryApartment",script:"Montage: Pool → Gym → Garden → Club → Kids area\nUpbeat background music\nText: Each amenity name + emoji\nEnd: CTA"},
+    {day:"Fri",type:"Carousel",idea:"EMI breakdown — ghar lena easy hai",time:"12-1 PM",assign:"Twisha",caption:"Ahmedabad me ghar lena itna easy hai! 😱 EMI breakdown dekho 👉 #HomeLoans #EMI #NityamHarmony #Ahmedabad",script:"Slide 1: 'Ghar lena mushkil nahi!'\nSlide 2: Price range\nSlide 3: Down payment options\nSlide 4: EMI calculator example\nSlide 5: Bank tie-ups\nSlide 6: 'Book now — limited units'"},
+    {day:"Sat",type:"Reel",idea:"Premium lifestyle at Nityam Luxuria",time:"7-9 PM",assign:"Khushi",caption:"Luxury redefined 👑 Nityam Luxuria — where every detail matters. DM LUXURIA for exclusive details! #NityamLuxuria #LuxuryHomes",script:"High-end cinematic style\nFocus: Premium finishes, views, exclusive amenities\nText: Key luxury features\nVoiceover or text overlays\nCTA at end"},
+    {day:"Sun",type:"Story",idea:"Poll + site visit invite",time:"Anytime",assign:"Twisha",caption:"Story only",script:"Poll: '3BHK ya 4BHK?'\nPoll: 'Site visit chahiye?'\nStory: 'Yes voteron ko DM bhejo!'"},
+  ],
+  scalixo:[
+    {day:"Mon",type:"Reel",idea:"Why most businesses stay invisible online",time:"7-9 PM",assign:"Khushi",caption:"Ye galti kar rahe ho aap bhi? 😱 Most businesses stay invisible online because of THIS. Save this! #DigitalMarketing #ScalixoMedia #BusinessTips",script:"Hook: 'Aapka competitor aage kyun ja raha hai?'\nProblem: No strategy, no consistency\nSolution: What Scalixo does\nCTA: 'DM GROW for free consultation'"},
+    {day:"Tue",type:"Carousel",idea:"5 mistakes businesses make on social media",time:"12-1 PM",assign:"Twisha",caption:"Save this! 5 social media mistakes jo aapki growth rok rahi hain 📱 #SocialMediaTips #ScalixoMedia #DigitalMarketing",script:"Slide 1: '5 Mistakes killing your social media'\nSlide 2-6: Each mistake with fix\nSlide 7: 'We fix all of these — DM AUDIT'"},
+    {day:"Wed",type:"Reel",idea:"Reels vs Posts — kya zyada kaam karta hai?",time:"7-9 PM",assign:"Khushi",caption:"Reels ya Posts — kya dalna chahiye? 🤔 Data-backed answer! #InstagramTips #Reels #ScalixoMedia",script:"Hook: 'Ye debate khatam karte hain'\nData comparison: reach, engagement\nConclusion: Reels win + when to use posts\nCTA: 'DM STRATEGY for your business plan'"},
+    {day:"Thu",type:"Post",idea:"Client result — 0 to 5000 followers case study",time:"10-11 AM",assign:"Twisha",caption:"From 0 to 5000 followers in 3 months 📈 Real results for a real client. Your turn? DM RESULTS! #CaseStudy #ScalixoMedia #Results",script:"Before/after graphic\nKey metrics: followers, reach, engagement\nTimeline: Month 1, 2, 3\nBottom: 'DM us for free audit'"},
+    {day:"Fri",type:"Reel",idea:"Apna brand viral karo — 3 tips",time:"7-9 PM",assign:"Khushi",caption:"3 cheezein jo aapka brand viral kar sakti hain 🚀 Try karo aaj se! #BrandBuilding #ViralContent #ScalixoMedia",script:"Fast-paced: Tip 1, Tip 2, Tip 3\nEach tip: 5-7 seconds\nEnd: 'Scalixo Media — we do this for you'\nCTA: 'DM VIRAL'"},
+    {day:"Sat",type:"Carousel",idea:"What Scalixo Media does — services",time:"12-1 PM",assign:"Twisha",caption:"360° Digital Marketing — ye sab karte hain hum! 💪 #ScalixoMedia #MarketingAgency #Services",script:"Slide 1: 'What Scalixo Media does'\nSlide 2: Social Media Management\nSlide 3: Performance Marketing\nSlide 4: Influencer Marketing\nSlide 5: SEO + Website\nSlide 6: 'Let's grow together — DM now'"},
+    {day:"Sun",type:"Story",idea:"BTS + DM CTA",time:"Anytime",assign:"Khushi",caption:"Story only",script:"BTS: Team working\n'Aaj free consultation available hai'\nLink: WhatsApp / DM"},
+  ],
+  lavista:[
+    {day:"Mon",type:"Post",idea:"Marketing tip of the week for builders",time:"10-11 AM",assign:"Twisha",caption:"Marketing tip of the week for real estate builders 💡 Save this! #RealEstateMarketing #LavistaMarketing #BuilderTips",script:"Clean graphic: Tip headline + 3 points\nLavista Marketing Agency branding\nBottom: 'For complete strategy — DM TIPS'"},
+    {day:"Tue",type:"Reel",idea:"5 reasons property ads are failing",time:"7-9 PM",assign:"Khushi",caption:"Aapke property ads fail kyun ho rahe hain? 😤 5 real reasons — watch till end! #PropertyMarketing #RealEstate #LavistaMarketing",script:"Hook: 'Itna budget lagaya phir bhi leads nahi?'\nReason 1-5: Each 5-7 seconds\nSolution: 'Lavista Marketing Agency fix karta hai ye sab'\nCTA: 'DM AUDIT for free review'"},
+    {day:"Wed",type:"Carousel",idea:"Case study — builder Instagram 300% growth",time:"12-1 PM",assign:"Twisha",caption:"Ek builder ka Instagram 3 months me 300% grow kiya hamne 📈 Swipe to see how! #CaseStudy #RealEstateMarketing #LavistaMarketing",script:"Slide 1: 'How we grew a builder's Instagram by 300%'\nSlide 2: Client profile (anonymized)\nSlide 3: Month 1 strategy\nSlide 4: Month 2 results\nSlide 5: Month 3 numbers\nSlide 6: 'DM RESULTS for your project'"},
+    {day:"Thu",type:"Reel",idea:"Digital marketing bridges builder and buyer",time:"7-9 PM",assign:"Khushi",caption:"Digital marketing sirf posts nahi — ye builder aur buyer ke beech bridge banata hai 🌉 #DigitalMarketing #RealEstate #LavistaMarketing",script:"Concept reel: Builder side challenges + Buyer side needs\nMiddle: How digital marketing bridges the gap\nLavista Marketing Agency branding\nCTA: 'DM BRIDGE'"},
+    {day:"Fri",type:"Carousel",idea:"3 mistakes — leads nahi aa rahe",time:"12-1 PM",assign:"Twisha",caption:"Leads nahi aa rahe? Ye 3 galtiyan ho sakti hain! 🚨 Fix karo abhi — Swipe! #LeadGeneration #PropertyMarketing #LavistaMarketing",script:"Slide 1: '3 reasons why leads aren't coming'\nSlide 2: Wrong targeting\nSlide 3: Weak creative\nSlide 4: No follow-up system\nSlide 5: 'We fix all 3 — DM FIX'"},
+    {day:"Sat",type:"Reel",idea:"Lavista Marketing Factory intro",time:"7-9 PM",assign:"Khushi",caption:"Lavista Marketing Factory — aapke real estate business ki digital growth ka powerhouse! 🏭 DM FACTORY to know more! #LavistaMarketing #RealEstateMarketing",script:"Brand intro reel\nShow: Team, process, results\nVoiceover: 'We help builders get more leads, more visibility'\nEnd: Logo + contact"},
+    {day:"Sun",type:"Story",idea:"Testimonial + free audit CTA",time:"Anytime",assign:"Twisha",caption:"Story only",script:"Builder client testimonial screenshot\n'Free digital audit — DM AUDIT'\nTimer: Limited slots today"},
+  ],
+  lavista_est:[
+    {day:"Mon",type:"Reel",idea:"Property walkthrough — No Brokerage",time:"7-9 PM",assign:"Khushi",caption:"NO BROKERAGE! 🏠 Direct builder deal — [Property Name], [Location]\n✅ [X]BHK | ✅ [Size] sq ft | ✅ Starting ₹[Price]\nDM VISIT for site tour! #NoBrokerage #AhmedabadProperty #LavistaEstate",script:"Walk through property\nText overlay: 'NO BROKERAGE' badge prominent\nKey specs: BHK, size, price\nEnd: 'DM VISIT' CTA + contact number"},
+    {day:"Tue",type:"Post",idea:"Property listing — clean design",time:"10-11 AM",assign:"Twisha",caption:"📍 [Property Name] | [Location], Ahmedabad\n🏠 [X]BHK | 📐 [Size] sq ft | 💰 ₹[Price] onwards\n✅ No Brokerage | ✅ Direct Builder Deal\nDM VISIT for details! #AhmedabadProperty #LavistaEstate",script:"Clean property graphic\nKey info overlay: Location, BHK, size, price\nLavista Estate logo + 'No Brokerage' badge\nContact at bottom"},
+    {day:"Wed",type:"Story",idea:"Aaj ki property + site visit",time:"Anytime",assign:"Khushi",caption:"Story only",script:"Story 1: Property photo 'Aaj ki property'\nStory 2: Key details quick\nStory 3: 'Site visit ke liye DM karo!'"},
+    {day:"Thu",type:"Carousel",idea:"Best areas to invest in Ahmedabad 2025",time:"12-1 PM",assign:"Twisha",caption:"Ahmedabad me investment ke liye best areas 2025 🏙️ Swipe to know! #AhmedabadInvestment #RealEstate #LavistaEstate",script:"Slide 1: 'Best areas to invest in Ahmedabad 2025'\nSlide 2-6: Each area (Shela, SG Highway, Bopal, etc.) with price range + growth potential\nSlide 7: 'Find your property — DM INVEST'"},
+    {day:"Fri",type:"Reel",idea:"Brokerage kyun nahi lena chahiye",time:"7-9 PM",assign:"Khushi",caption:"Brokerage dena band karo! 🚫 Direct builder se property lo — save lakhs! DM DIRECT! #NoBrokerage #DirectDeal #LavistaEstate",script:"Hook: 'Brokerage deke paisa barbad mat karo'\nExplain: What brokerage costs\nSolution: Lavista Estate — direct builder deals\nCTA: 'DM DIRECT for zero brokerage deals'"},
+    {day:"Sat",type:"Reel",idea:"Cinematic premium property tour",time:"7-9 PM",assign:"Twisha",caption:"Ye property dekhoge to aur kuch nahi dekhoge 😍 [Property Name] — DM TOUR! #LuxuryProperty #AhmedabadHomes #LavistaEstate",script:"Cinematic style: Drone shot → entrance → interiors → amenities → view\nMinimal text, premium music\nEnd: Price + 'DM TOUR'"},
+    {day:"Sun",type:"Story",idea:"Client testimonial + enquiry",time:"Anytime",assign:"Khushi",caption:"Story only",script:"Testimonial from recent buyer\n'Aap bhi ghar dhundo bina brokerage ke'\nDM link"},
+  ],
+};
+
+const SHOOT_CHECKLISTS={
+  creata:["📍 Location scout — Odhav site entry and surroundings","🎬 Site walkthrough — main entrance shot","🏗️ Construction progress shots — multiple angles","🅿️ Parking area and access road","📐 Unit interior — shop/showroom sample","🌅 Golden hour exterior shot","📱 Vertical format reels (9:16)","🎤 Voiceover recording for site","📊 Amenities board / project hoarding shot","✅ Project logo and branding visuals"],
+  nityam:["🏠 Building exterior — full facade shot","🚪 Main entrance and lobby","🛋️ Living room — wide + detail shots","🍳 Kitchen — countertop and full view","🛏️ Master bedroom — bed, wardrobe, window view","🛁 Bathroom — clean and lit","🌿 Balcony — view shot","🏊 Swimming pool — morning light","💪 Gym — equipment shots","🌳 Garden and common areas","👨‍👩‍👧 Lifestyle shot — family/couple in apartment","📱 Vertical reels (9:16) for each space"],
+  scalixo:["💻 Team working shots — laptop, discussion","📱 Phone screen recording — analytics dashboard","🎯 Strategy session — whiteboard/meeting","📊 Results screenshot (anonymized client data)","🎬 Talking head — team member explaining tip","✏️ Creative process — design work","🤝 Client meeting BTS","📸 Office space shots","🎤 Voiceover for educational reels","📱 Vertical format content (9:16)"],
+  lavista:["🎤 Talking head — spokesperson explaining marketing tip","📊 Before/after results graphics","💻 Ad campaign dashboard screenshot","📱 Instagram analytics screenshot","🤝 Client meeting / consultation shot","📝 Strategy document / planning shots","🏗️ Property site visit (for builder clients)","🎬 Team collaboration shots","✏️ Creative work — graphic design process","📱 Vertical format reels (9:16)"],
+  lavista_est:["🏠 Property exterior — full building shot","🚪 Main entrance and lobby area","🛋️ Living/dining area — wide angle","🍳 Kitchen — well-lit shot","🛏️ Bedroom — all bedrooms","🌅 View from balcony","🅿️ Parking and amenities","📍 Location map / area shots","💰 Price board / possession details","🎬 Drone/aerial shot if available","📱 Vertical (9:16) + Square (1:1) formats","✅ 'No Brokerage' badge visible in all shots"],
+};
+
+const CLIENT_INFO={
+  creata:{followers:125,posts:17,category:"Industrial & Commercial",location:"Odhav, Ahmedabad",goal:"Awareness + Enquiries for shop/warehouse buyers",target:"SME owners, investors, warehouse seekers"},
+  nityam:{followers:1760,posts:202,category:"Residential Developer",location:"Ahmedabad",goal:"Ready buyers for 2-3-4 BHK premium homes",target:"Families, couples, NRIs"},
+  scalixo:{followers:69,posts:9,category:"Digital Marketing Agency",location:"Ahmedabad",goal:"Attract business clients needing social media",target:"Small businesses, startups, builders"},
+  lavista:{followers:131,posts:14,category:"Real Estate Marketing Agency",location:"Gurukul, Ahmedabad",goal:"Get builder/developer clients",target:"Builders, developers, real estate agents"},
+  lavista_est:{followers:426,posts:21,category:"Real Estate Agent",location:"Ahmedabad",goal:"Property buyers, sellers, investors",target:"Home buyers, investors — No Brokerage USP"},
+};
+
+const TYPE_COLORS={Reel:{bg:"#431407",color:"#fb923c"},Carousel:{bg:"#1e3a5f",color:"#60a5fa"},Post:{bg:"#14532d",color:"#4ade80"},Story:{bg:"#2e1065",color:"#c084fc"}};
+const DC={Management:"#8b5cf6",Content:"#ec4899",Sales:"#3b82f6",Tech:"#14b8a6",Creative:"#f97316"};
+const TKEY=new Date().toISOString().split("T")[0];
+const TSTR=new Date().toLocaleDateString("en-IN",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+const DAYS=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+
+let CU=null,TAB="update";
+
+function ini(n){return n.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();}
+function escHtml(s){return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+function fmtDate(d){try{return new Date(d).toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"});}catch{return d;}}
+function lsGet(k){try{const v=localStorage.getItem(k);return v?JSON.parse(v):null;}catch{return null;}}
+function lsSave(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch{}}
+
+document.getElementById("loginBtn").onclick=doLogin;
+document.getElementById("uInp").onkeydown=e=>{if(e.key==="Enter")document.getElementById("pInp").focus();};
+document.getElementById("pInp").onkeydown=e=>{if(e.key==="Enter")doLogin();};
+document.getElementById("logoutBtn").onclick=doLogout;
+
+async function doLogin(){
+  const uid=document.getElementById("uInp").value.trim().toLowerCase();
+  const pwd=document.getElementById("pInp").value;
+  const u=USERS.find(x=>x.id===uid);
+  if(!u){document.getElementById("errBox").style.display="block";document.getElementById("errBox").textContent="User not found.";return;}
+
+  // Check custom password from database first (unless admin which is locked)
+  let validPass=u.pass;
+  if(!u.locked){
+    try{
+      const {data:pwData,error:pwErr}=await sb.from("user_passwords").select("password").eq("user_id",uid).limit(1);
+      if(!pwErr&&pwData&&pwData.length>0&&pwData[0].password){validPass=pwData[0].password;}
+    }catch(e){console.log("pw fetch error",e);}
+  }
+
+  if(pwd!==validPass){document.getElementById("errBox").style.display="block";document.getElementById("errBox").textContent="Wrong password.";return;}
+
+  CU=u;
+  document.getElementById("errBox").style.display="none";
+  document.getElementById("loginWrap").style.display="none";
+  document.getElementById("appWrap").style.display="flex";
+  document.getElementById("hDate").textContent=TSTR;
+  const col=DC[u.dept]||"#6b7280";
+  const av=document.getElementById("hAvatar");
+  av.textContent=ini(u.name);
+  av.style.cssText=`width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;background:${col}33;border:2px solid ${col};color:${col};`;
+  document.getElementById("hName").textContent=u.name;
+  renderTabs();renderContent();
+}
+
+async function doLogout(){
+  // Record logout time in attendance
+  if(CU && !CU.isAdmin){
+    const now=new Date();
+    const logoutTime=`${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
+    // Update today's attendance with logout time
+    await sb.from("attendance").update({logout_time:logoutTime}).eq("employee_id",CU.id).eq("date",TKEY).catch(()=>{});
+  }
+  CU=null;
+  document.getElementById("loginWrap").style.display="flex";
+  document.getElementById("appWrap").style.display="none";
+  document.getElementById("uInp").value="";
+  document.getElementById("pInp").value="";
+}
+
+function renderTabs(){
+  const isAdmin=CU.isAdmin;
+  const showExpenses=CU.isAdmin||CU.id==="piyush";
+  const tabs=[
+    {id:"update",label:"📝 Evening Update"},
+    {id:"attendance",label:"🕐 Attendance"},
+    {id:"clients",label:"📊 Client Tracker"},
+    {id:"planner",label:"📅 Content Planner"},
+    {id:"shoot",label:"📸 Shoot Checklist"},
+    ...(showExpenses?[{id:"expenses",label:"💰 Expenses"}]:[]),
+    ...(isAdmin?[{id:"team",label:"👥 Team View"},{id:"history",label:"🗂️ History"},{id:"attreport",label:"📊 Attendance Report"},{id:"adminpanel",label:"🔐 Manage Passwords"}]:[{id:"myhistory",label:"🗂️ My History"}])
+  ];
+  document.getElementById("tabsRow").innerHTML=tabs.map(t=>
+    `<button class="tab-btn${TAB===t.id?" active":""}" onclick="switchTab('${t.id}')">${t.label}</button>`
+  ).join("");
+}
+
+function switchTab(t){TAB=t;renderTabs();renderContent();}
+
+function renderContent(){
+  const c=document.getElementById("mainContent");
+  if(TAB==="update")c.innerHTML=buildUpdateForm();
+  else if(TAB==="clients"){c.innerHTML='<div class="loading">⏳ Loading...</div>';loadClients();}
+  else if(TAB==="planner")c.innerHTML=buildPlanner();
+  else if(TAB==="shoot")c.innerHTML=buildShootChecklist();
+  else if(TAB==="team"){c.innerHTML='<div class="loading">⏳ Loading...</div>';loadTeam();}
+  else if(TAB==="history"){c.innerHTML=buildHistoryPage();loadHistory();}
+  else if(TAB==="myhistory"){c.innerHTML=buildMyHistoryPage();loadMyHistory();}
+  else if(TAB==="adminpanel"){c.innerHTML='<div class="loading">⏳ Loading...</div>';loadAdminPanel();}
+  else if(TAB==="expenses"){c.innerHTML='<div class="loading">⏳ Loading...</div>';loadExpenses();}
+  else if(TAB==="attendance"){c.innerHTML='<div class="loading">⏳ Loading...</div>';loadAttendance();}
+  else if(TAB==="attreport"){c.innerHTML='<div class="loading">⏳ Loading...</div>';loadAttReport();}
+}
+
+// ═══ UPDATE FORM ═══
+function buildUpdateForm(){
+  const col=DC[CU.dept]||"#6b7280";
+  const hr=new Date().getHours();
+  const rem=hr<18?`<div class="reminder-banner">⏰ Evening update 6 PM ke baad submit karo. Abhi ${new Date().toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"})} ho rahe hain.</div>`:"";
+  return `${rem}<div class="card" style="border:1px solid ${col}33">
+    <div class="update-header">
+      <div class="update-avatar" style="background:${col}22;border:2px solid ${col};color:${col}">${ini(CU.name)}</div>
+      <div><div style="font-size:17px;font-weight:700">🌙 Evening Update — ${TSTR}</div><div style="color:${col};font-size:12px">${CU.name} • ${CU.role}</div></div>
+      <select id="statusSel" style="margin-left:auto"><option>Not Started</option><option>In Progress</option><option selected>Done</option></select>
+    </div>
+    <div style="margin-bottom:16px"><label class="form-label">✅ Aaj kya kiya?</label><textarea id="kyaKiyaTxt" placeholder="Aaj ka poora kaam batao..."></textarea></div>
+    <div style="margin-bottom:16px"><label class="form-label">📋 Completed Tasks</label>
+      <div id="taskList"><input class="task-input" id="tk_0" placeholder="Task 1" /><input class="task-input" id="tk_1" placeholder="Task 2" /></div>
+      <button class="btn-add" onclick="addTask()">+ Add Task</button></div>
+    <div style="margin-bottom:16px"><label class="form-label">⏳ Pending / Kal ke liye</label><textarea id="pendingTxt" style="min-height:70px" placeholder="Jo kaam aaj nahi hua..."></textarea></div>
+    ${(CU.dept==="Sales"||CU.dept==="Management")?`<div style="margin-bottom:16px"><label class="form-label">📞 Calls Count</label><input class="task-input" id="callsTxt" placeholder="Kitne calls kiye aaj" /></div>`:""}
+    <div style="display:flex;align-items:center;margin-top:8px"><button class="btn-save" onclick="saveUpdate()">💾 Submit Evening Update</button><span class="saved-tag" id="savedTag">✓ Saved!</span></div>
+  </div>`;
+}
+
+function addTask(){
+  const list=document.getElementById("taskList");
+  const i=list.children.length;
+  const inp=document.createElement("input");
+  inp.className="task-input";inp.id=`tk_${i}`;inp.placeholder=`Task ${i+1}`;
+  list.appendChild(inp);
+}
+
+async function saveUpdate(){
+  const tasks=[];
+  document.querySelectorAll("[id^='tk_']").forEach(el=>{if(el.value)tasks.push(el.value);});
+  const callsEl=document.getElementById("callsTxt");
+  const data={employee_id:CU.id,employee_name:CU.name,role:CU.role,dept:CU.dept,date:TKEY,
+    kya_kiya:document.getElementById("kyaKiyaTxt").value,
+    pending:document.getElementById("pendingTxt").value,
+    calls:callsEl?callsEl.value:"",status:document.getElementById("statusSel").value,
+    tasks:JSON.stringify(tasks),submitted_at:new Date().toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"})};
+  const {error}=await sb.from('daily_updates').upsert(data,{onConflict:'employee_id,date'});
+  const tag=document.getElementById("savedTag");
+  tag.style.color=error?"#f87171":"#16a34a";
+  tag.textContent=error?"❌ Error!":"✓ Saved!";
+  tag.style.display="inline";
+  setTimeout(()=>tag.style.display="none",3000);
+}
+
+// ═══ CLIENT TRACKER with CHART ═══
+async function loadClients(){
+  const {data}=await sb.from('client_tracker').select('*').eq('date',TKEY);
+  const cm={};if(data)data.forEach(r=>cm[r.client_id]=r);
+
+  // Check pending alerts for today
+  const today=DAYS[new Date().getDay()===0?6:new Date().getDay()-1];
+  let alerts=[];
+  Object.keys(WEEKLY_PLAN).forEach(cid=>{
+    const todayPost=WEEKLY_PLAN[cid].find(p=>p.day===today);
+    if(todayPost){
+      const stKey=`ps_${cid}_${today}_${TKEY}`;
+      const status=localStorage.getItem(stKey)||"pending";
+      if(status==="pending"){
+        const cname=CLIENT_INFO[cid]?.category?.split(" ")[0]||cid;
+        const cn=CLIENTS.find(x=>x.id===cid)?.name||cid;
+        alerts.push(`${cn} — ${todayPost.type} (${todayPost.time})`);
+      }
+    }
+  });
+
+  let alertHtml="";
+  if(alerts.length>0){
+    alertHtml=`<div class="alert-banner">🔔 <b>Aaj ke pending posts:</b> ${alerts.join(" | ")} — Content Planner me jaake mark karo!</div>`;
+  }
+
+  // Build chart data
+  const chartLabels=CLIENTS.map(c=>c.name.split(" ")[0]);
+  const doneData=CLIENTS.map(c=>{const d=cm[c.id]||{};return (d.reels||0)+(d.carousels||0)+(d.posts||0)+(d.stories||0);});
+  const targetData=CLIENTS.map(c=>c.t.reels+c.t.carousels+c.t.posts+c.t.stories);
+
+  document.getElementById("mainContent").innerHTML=`
+  ${alertHtml}
+  <div class="chart-wrap">
+    <div class="chart-title">📊 Weekly Progress — Done vs Target</div>
+    <div style="position:relative;height:180px"><canvas id="progressChart"></canvas></div>
+  </div>
+  <div class="section-title">📊 Client Work Tracker — This Week</div>
+  <div class="grid2">${CLIENTS.map(c=>{
+    const d=cm[c.id]||{reels:0,carousels:0,posts:0,stories:0,notes:""};
+    const tot=(d.reels||0)+(d.carousels||0)+(d.posts||0)+(d.stories||0);
+    const tar=c.t.reels+c.t.carousels+c.t.posts+c.t.stories;
+    const pct=Math.min(100,Math.round(tot/tar*100));
+    return `<div class="client-card" style="background:${c.bg};border:1px solid ${c.color}44">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <span style="font-size:22px">${c.icon}</span>
+        <div><div style="font-weight:700;font-size:14px">${c.name}</div>
+        <div style="color:${c.color};font-size:11px" id="pct_${c.id}">${pct}% complete</div></div>
+      </div>
+      <div class="progress-bg"><div class="progress-fill" id="bar_${c.id}" style="background:${c.color};width:${pct}%"></div></div>
+      ${[{key:"reels",label:"🎬 Reels",tar:c.t.reels},{key:"carousels",label:"📂 Carousels",tar:c.t.carousels},{key:"posts",label:"🖼️ Posts",tar:c.t.posts},{key:"stories",label:"📱 Stories",tar:c.t.stories}].map(r=>`
+      <div class="counter-row">
+        <span style="color:#d1d5db;font-size:13px">${r.label}</span>
+        <div class="counter-right">
+          <span class="target-label">Target:${r.tar}</span>
+          <button class="btn-minus" onclick="updClient('${c.id}','${r.key}',-1,'${c.color}',${r.tar})">−</button>
+          <span class="count-num" id="cv_${c.id}_${r.key}" style="color:${(d[r.key]||0)>=r.tar?c.color:"#fff"}">${d[r.key]||0}</span>
+          <button class="btn-plus" style="background:${c.color}" onclick="updClient('${c.id}','${r.key}',1,'${c.color}',${r.tar})">+</button>
+        </div>
+      </div>`).join("")}
+      <textarea class="client-note" placeholder="Notes / pending / issues..." onchange="saveNote('${c.id}',this.value)">${escHtml(d.notes||"")}</textarea>
+    </div>`;
+  }).join("")}</div>`;
+
+  // Init chart
+  setTimeout(()=>{
+    const ctx=document.getElementById("progressChart");
+    if(!ctx)return;
+    new Chart(ctx,{
+      type:"bar",
+      data:{
+        labels:chartLabels,
+        datasets:[
+          {label:"Done",data:doneData,backgroundColor:["#f9731688","#ec489988","#14b8a688","#eab30888","#a78bfa88"],borderColor:["#f97316","#ec4899","#14b8a6","#eab308","#a78bfa"],borderWidth:2,borderRadius:6},
+          {label:"Target",data:targetData,backgroundColor:"#ffffff11",borderColor:"#ffffff33",borderWidth:1,borderRadius:6}
+        ]
+      },
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,labels:{color:"#9ca3af",font:{size:11}}}},scales:{x:{ticks:{color:"#6b7280",font:{size:10}},grid:{color:"#1e1e2e"}},y:{ticks:{color:"#6b7280",font:{size:10}},grid:{color:"#1e1e2e"},beginAtZero:true}}}
+    });
+  },100);
+}
+
+async function updClient(cid,field,delta,color,tar){
+  const c=CLIENTS.find(x=>x.id===cid);
+  const el=document.getElementById(`cv_${cid}_${field}`);
+  const newVal=Math.max(0,(parseInt(el.textContent)||0)+delta);
+  el.textContent=newVal;el.style.color=newVal>=tar?color:"#fff";
+  await sb.from('client_tracker').upsert({client_id:cid,date:TKEY,[field]:newVal},{onConflict:'client_id,date'});
+  const allF=["reels","carousels","posts","stories"];
+  const tot=allF.reduce((s,f)=>{const v=document.getElementById(`cv_${cid}_${f}`);return s+(v?parseInt(v.textContent)||0:0);},0);
+  const ttar=c.t.reels+c.t.carousels+c.t.posts+c.t.stories;
+  const pct=Math.min(100,Math.round(tot/ttar*100));
+  const bar=document.getElementById(`bar_${cid}`);const pctEl=document.getElementById(`pct_${cid}`);
+  if(bar)bar.style.width=pct+"%";if(pctEl)pctEl.textContent=pct+"% complete";
+}
+
+async function saveNote(cid,val){
+  await sb.from("client_tracker").upsert({client_id:cid,date:TKEY,notes:val},{onConflict:"client_id,date"});
+}
+
+// ═══ CONTENT PLANNER with CAPTION + SCRIPT ═══
+function buildPlanner(){
+  const clientIds=Object.keys(WEEKLY_PLAN);
+  const cnames={creata:"Creata Buildcon",nityam:"Nityam Harmony",scalixo:"Scalixo Media",lavista:"Lavista Marketing",lavista_est:"Lavista Estate"};
+  const cicons={creata:"🏗️",nityam:"🏠",scalixo:"📱",lavista:"🚀",lavista_est:"🏆"};
+  let html=`<div class="section-title">📅 Content Planner — Weekly Schedule</div>
+  <div class="planner-tabs">`;
+  clientIds.forEach((id,i)=>{
+    html+=`<button class="planner-tab${i===0?" active":""}" onclick="showPlanner('${id}',this)">${cicons[id]} ${cnames[id]}</button>`;
+  });
+  html+=`</div>`;
+  clientIds.forEach((id,i)=>{
+    const plan=WEEKLY_PLAN[id];
+    const info=CLIENT_INFO[id];
+    const c=CLIENTS.find(x=>x.id===id)||{color:"#7c3aed"};
+    html+=`<div class="planner-section${i===0?" active":""}" id="planner-${id}">
+    <div class="client-info-bar" style="border-color:${c.color}44">
+      <span class="ci-icon">${cicons[id]}</span>
+      <div><div class="ci-name">${cnames[id]}</div><div class="ci-meta">${info.category} • ${info.location}</div></div>
+      <div class="ci-stats">
+        <div class="ci-stat"><div class="ci-stat-num" style="color:${c.color}">${info.followers}</div><div class="ci-stat-lbl">Followers</div></div>
+        <div class="ci-stat"><div class="ci-stat-num" style="color:${c.color}">${info.posts}</div><div class="ci-stat-lbl">Posts</div></div>
+      </div>
+    </div>
+    <div class="week-grid">`;
+    plan.forEach(day=>{
+      const tc=TYPE_COLORS[day.type]||{bg:"#1a1a2e",color:"#fff"};
+      const stKey=`ps_${id}_${day.day}_${TKEY}`;
+      const saved=localStorage.getItem(stKey)||"pending";
+      const capKey=`cap_${id}_${day.day}`;
+      const savedCap=localStorage.getItem(capKey)||"";
+      html+=`<div class="day-col">
+        <div class="day-label">${day.day}</div>
+        <div class="content-pill" style="background:${tc.bg};color:${tc.color}">${day.type}</div>
+        <div class="content-idea">${day.idea}</div>
+        <div class="content-time">⏰ ${day.time}</div>
+        <div class="content-assign">👤 ${day.assign}</div>
+        <select class="post-status" onchange="savePostStatus('${id}','${day.day}',this.value)" style="border-color:${saved==="posted"?"#16a34a":saved==="scheduled"?"#f59e0b":"#2d2d44"}">
+          <option value="pending"${saved==="pending"?" selected":""}>⏳ Pending</option>
+          <option value="scheduled"${saved==="scheduled"?" selected":""}>📅 Scheduled</option>
+          <option value="posted"${saved==="posted"?" selected":""}>✅ Posted</option>
+        </select>
+        <button class="btn-caption" onclick="toggleCaption('cap_area_${id}_${day.day}')">💬 Caption/Script</button>
+        <div id="cap_area_${id}_${day.day}" style="display:none;margin-top:6px">
+          <div class="caption-box">
+            <div class="caption-label">📝 Ready Caption</div>
+            <div class="caption-text" style="font-size:10px;color:#9ca3af;margin-bottom:4px">${escHtml(day.caption)}</div>
+          </div>
+          <div class="caption-box" style="margin-top:6px">
+            <div class="caption-label">🎬 Script / Shot List</div>
+            <div class="caption-text" style="font-size:10px;color:#9ca3af;margin-bottom:4px;white-space:pre-line">${escHtml(day.script)}</div>
+          </div>
+          <textarea class="caption-input" id="custom_cap_${id}_${day.day}" placeholder="Custom notes / edited caption..." onchange="saveCaption('${id}','${day.day}',this.value)">${escHtml(savedCap)}</textarea>
+        </div>
+      </div>`;
+    });
+    html+=`</div></div>`;
+  });
+  return html;
+}
+
+function showPlanner(id,btn){
+  document.querySelectorAll(".planner-section").forEach(s=>s.classList.remove("active"));
+  document.querySelectorAll(".planner-tab").forEach(t=>t.classList.remove("active"));
+  document.getElementById("planner-"+id).classList.add("active");
+  btn.classList.add("active");
+}
+
+function toggleCaption(id){
+  const el=document.getElementById(id);
+  if(el)el.style.display=el.style.display==="none"?"block":"none";
+}
+
+function savePostStatus(clientId,day,val){
+  localStorage.setItem(`ps_${clientId}_${day}_${TKEY}`,val);
+  event.target.style.borderColor=val==="posted"?"#16a34a":val==="scheduled"?"#f59e0b":"#2d2d44";
+}
+
+function saveCaption(clientId,day,val){
+  localStorage.setItem(`cap_${clientId}_${day}`,val);
+}
+
+// ═══ SHOOT CHECKLIST ═══
+function buildShootChecklist(){
+  const cnames={creata:"Creata Buildcon",nityam:"Nityam Harmony",scalixo:"Scalixo Media",lavista:"Lavista Marketing",lavista_est:"Lavista Estate"};
+  const cicons={creata:"🏗️",nityam:"🏠",scalixo:"📱",lavista:"🚀",lavista_est:"🏆"};
+  const cids=Object.keys(SHOOT_CHECKLISTS);
+  let html=`<div class="section-title">📸 Shoot Checklist — Videographer Guide</div>
+  <p style="font-size:12px;color:#6b7280;margin-bottom:16px">Har client ke liye shoot karte waqt ye checklist follow karo. Tick karo jaise complete ho.</p>
+  <div class="planner-tabs">`;
+  cids.forEach((id,i)=>{
+    html+=`<button class="planner-tab${i===0?" active":""}" onclick="showShoot('${id}',this)">${cicons[id]} ${cnames[id]}</button>`;
+  });
+  html+=`</div>`;
+  cids.forEach((id,i)=>{
+    const items=SHOOT_CHECKLISTS[id];
+    const c=CLIENTS.find(x=>x.id===id)||{color:"#7c3aed"};
+    html+=`<div class="planner-section${i===0?" active":""}" id="shoot-${id}">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div style="font-size:14px;font-weight:700">${cicons[id]} ${cnames[id]} — Shoot Checklist</div>
+      <button class="refresh-btn" onclick="resetChecklist('${id}')">🔄 Reset</button>
+    </div>
+    <div class="card" style="border:1px solid ${c.color}33;padding:16px">
+      ${items.map((item,idx)=>{
+        const ck=`shoot_${id}_${idx}`;
+        const checked=localStorage.getItem(ck)==="1";
+        return `<div class="checklist-item">
+          <input type="checkbox" class="check-cb" id="${ck}" ${checked?"checked":""} onchange="saveCheck('${ck}',this.checked,'lbl_${ck}')">
+          <label class="check-label${checked?" done":""}" id="lbl_${ck}" for="${ck}">${item}</label>
+        </div>`;
+      }).join("")}
+    </div>
+    <div style="background:#111118;border:1px solid ${c.color}33;border-radius:12px;padding:16px;margin-top:12px">
+      <div style="font-size:12px;font-weight:700;color:#a78bfa;margin-bottom:8px">📝 Shoot Notes / Custom Items</div>
+      <textarea style="min-height:80px" placeholder="Extra shots ya notes likho yahan..." id="shoot_notes_${id}" onchange="saveShootNote('${id}',this.value)">${escHtml(localStorage.getItem('snote_'+id)||"")}</textarea>
+    </div>
+    </div>`;
+  });
+  return html;
+}
+
+function showShoot(id,btn){
+  document.querySelectorAll(".planner-section").forEach(s=>s.classList.remove("active"));
+  document.querySelectorAll(".planner-tab").forEach(t=>t.classList.remove("active"));
+  document.getElementById("shoot-"+id).classList.add("active");
+  btn.classList.add("active");
+}
+
+function saveCheck(key,val,lblId){
+  localStorage.setItem(key,val?"1":"0");
+  const lbl=document.getElementById(lblId);
+  if(lbl)lbl.className="check-label"+(val?" done":"");
+}
+
+function resetChecklist(id){
+  const items=SHOOT_CHECKLISTS[id];
+  items.forEach((_,idx)=>{
+    const ck=`shoot_${id}_${idx}`;
+    localStorage.removeItem(ck);
+    const cb=document.getElementById(ck);
+    const lbl=document.getElementById("lbl_"+ck);
+    if(cb)cb.checked=false;
+    if(lbl)lbl.className="check-label";
+  });
+}
+
+function saveShootNote(id,val){localStorage.setItem("snote_"+id,val);}
+
+// ═══ TEAM VIEW ═══
+async function loadTeam(){
+  const {data}=await sb.from("daily_updates").select("*").eq("date",TKEY);
+  const um={};if(data)data.forEach(r=>um[r.employee_id]=r);
+  const members=USERS.filter(u=>!u.isAdmin);
+  const SC={"Done":"#16a34a","In Progress":"#f59e0b","Not Started":"#6b7280"};
+  const upds=members.map(u=>({...u,...(um[u.id]||{kya_kiya:"",pending:"",calls:"",status:"Not Started",tasks:"[]"})}));
+  const done=upds.filter(u=>u.status==="Done").length;
+  const inp=upds.filter(u=>u.status==="In Progress").length;
+  const ns=upds.filter(u=>u.status==="Not Started").length;
+  document.getElementById("mainContent").innerHTML=`
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+    <div class="section-title" style="margin-bottom:0">👑 Team Evening Updates — ${TSTR}</div>
+    <button class="refresh-btn" onclick="switchTab('team')">🔄 Refresh</button>
+  </div>
+  <div class="grid3" style="margin-bottom:20px">
+    <div class="stat-card" style="border:1px solid #16a34a44"><div class="stat-num" style="color:#16a34a">${done}</div><div class="stat-lbl">Submitted ✓</div></div>
+    <div class="stat-card" style="border:1px solid #f59e0b44"><div class="stat-num" style="color:#f59e0b">${inp}</div><div class="stat-lbl">In Progress</div></div>
+    <div class="stat-card" style="border:1px solid #6b728044"><div class="stat-num" style="color:#6b7280">${ns}</div><div class="stat-lbl">Pending ⚠️</div></div>
+  </div>
+  <div class="grid2">${upds.map(u=>{
+    const col=DC[u.dept]||"#6b7280";
+    const sc=SC[u.status]||"#6b7280";
+    let tasks=[];try{tasks=JSON.parse(u.tasks||"[]");}catch{}
+    tasks=tasks.filter(t=>t);
+    return `<div class="member-card" style="border:1px solid ${col}33">
+      <div class="member-header">
+        <div class="avatar" style="width:36px;height:36px;background:${col}22;border:2px solid ${col};color:${col};font-size:13px">${ini(u.name)}</div>
+        <div style="flex:1"><div style="font-weight:600;font-size:14px">${u.name}</div><div style="color:${col};font-size:11px">${u.role}</div></div>
+        <span class="status-badge" style="background:${sc}22;color:${sc};border:1px solid ${sc}44">${u.status}</span>
+      </div>
+      ${u.submitted_at?`<div style="color:#4b5563;font-size:10px;margin-bottom:8px">🕐 ${u.submitted_at}</div>`:""}
+      ${u.kya_kiya?`<div class="update-block"><div class="update-lbl" style="color:#16a34a">✅ Kya kiya</div><div class="update-txt">${escHtml(u.kya_kiya)}</div></div>`:""}
+      ${tasks.length?`<div class="update-block"><div class="update-lbl" style="color:#9ca3af">📋 Tasks</div>${tasks.map(t=>`<div class="task-line" style="border-left:2px solid ${col}44">• ${escHtml(t)}</div>`).join("")}</div>`:""}
+      ${u.pending?`<div class="update-block"><div class="update-lbl" style="color:#f59e0b">⏳ Pending</div><div class="update-txt">${escHtml(u.pending)}</div></div>`:""}
+      ${u.calls?`<div class="update-block"><div class="update-lbl" style="color:#3b82f6">📞 Calls</div><div class="update-txt">${escHtml(u.calls)}</div></div>`:""}
+      ${!u.kya_kiya&&!tasks.length?`<div class="no-update-txt">⚠️ Update submit nahi hua.</div>`:""}
+    </div>`;
+  }).join("")}</div>`;
+}
+
+// ═══ HISTORY ═══
+function buildHistoryPage(){
+  const weekAgo=new Date(Date.now()-7*24*60*60*1000).toISOString().split("T")[0];
+  return `<div class="section-title">🗂️ History</div>
+  <div class="history-filters">
+    <div><label class="form-label" style="margin-bottom:4px">From</label><input type="date" class="date-input" id="fromDate" value="${weekAgo}" /></div>
+    <div><label class="form-label" style="margin-bottom:4px">To</label><input type="date" class="date-input" id="toDate" value="${TKEY}" /></div>
+    <div><label class="form-label" style="margin-bottom:4px">Employee</label>
+      <select class="emp-filter" id="empFilter"><option value="">All</option>${USERS.filter(u=>!u.isAdmin).map(u=>`<option value="${u.id}">${u.name}</option>`).join("")}</select></div>
+    <button class="filter-btn" onclick="loadHistory()">🔍 Search</button>
+  </div>
+  <div id="historyResults"><div class="loading">⏳ Loading...</div></div>`;
+}
+
+async function loadHistory(){
+  const from=document.getElementById("fromDate")?.value||TKEY;
+  const to=document.getElementById("toDate")?.value||TKEY;
+  const emp=document.getElementById("empFilter")?.value||"";
+  let q=sb.from("daily_updates").select("*").gte("date",from).lte("date",to).order("date",{ascending:false});
+  if(emp)q=q.eq("employee_id",emp);
+  const {data,error}=await q;
+  const el=document.getElementById("historyResults");
+  if(error||!data||!data.length){el.innerHTML='<div class="no-data">📭 Koi update nahi mila.</div>';return;}
+  const SC={"Done":"#16a34a","In Progress":"#f59e0b","Not Started":"#6b7280"};
+  el.innerHTML=data.map(u=>{
+    const col=DC[u.dept]||"#6b7280";const sc=SC[u.status]||"#6b7280";
+    let tasks=[];try{tasks=JSON.parse(u.tasks||"[]");}catch{}tasks=tasks.filter(t=>t);
+    return `<div class="history-card" style="border-left:3px solid ${col}">
+      <div class="history-card-header">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="avatar" style="width:36px;height:36px;background:${col}22;border:2px solid ${col};color:${col};font-size:13px">${ini(u.employee_name||"?")}</div>
+          <div><div style="font-weight:600;font-size:14px">${u.employee_name||u.employee_id}</div><div style="color:${col};font-size:11px">${u.role||""}</div></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="background:#1a1a2e;border-radius:6px;padding:2px 8px;font-size:11px;color:#9ca3af">📅 ${fmtDate(u.date)}</span>
+          ${u.submitted_at?`<span style="color:#4b5563;font-size:11px">🕐 ${u.submitted_at}</span>`:""}
+          <span class="status-badge" style="background:${sc}22;color:${sc};border:1px solid ${sc}44">${u.status}</span>
+          <button onclick="deleteHistory(${u.id})" style="background:#2d1a1a;border:1px solid #7f1d1d;border-radius:6px;padding:3px 8px;color:#f87171;font-size:11px;cursor:pointer">🗑️ Delete</button>
+        </div>
+      </div>
+      ${u.kya_kiya?`<div class="update-block"><div class="update-lbl" style="color:#16a34a">✅ Kya kiya</div><div class="update-txt">${escHtml(u.kya_kiya)}</div></div>`:""}
+      ${tasks.length?`<div class="update-block"><div class="update-lbl" style="color:#9ca3af">📋 Tasks</div>${tasks.map(t=>`<div class="task-line" style="border-left:2px solid ${col}44">• ${escHtml(t)}</div>`).join("")}</div>`:""}
+      ${u.pending?`<div class="update-block"><div class="update-lbl" style="color:#f59e0b">⏳ Pending</div><div class="update-txt">${escHtml(u.pending)}</div></div>`:""}
+      ${u.calls?`<div class="update-block"><div class="update-lbl" style="color:#3b82f6">📞 Calls</div><div class="update-txt">${escHtml(u.calls)}</div></div>`:""}
+    </div>`;
+  }).join("");
+}
+
+async function deleteHistory(id){
+  if(!confirm("Ye update permanently delete karna chahte ho?"))return;
+  const {error}=await sb.from("daily_updates").delete().eq("id",id);
+  if(error){alert("Error: "+error.message);return;}
+  loadHistory();
+}
+
+function buildMyHistoryPage(){
+  const weekAgo=new Date(Date.now()-7*24*60*60*1000).toISOString().split("T")[0];
+  return `<div class="section-title">🗂️ Meri History — ${CU.name}</div>
+  <div class="history-filters">
+    <div><label class="form-label" style="margin-bottom:4px">From</label><input type="date" class="date-input" id="myFromDate" value="${weekAgo}" /></div>
+    <div><label class="form-label" style="margin-bottom:4px">To</label><input type="date" class="date-input" id="myToDate" value="${TKEY}" /></div>
+    <button class="filter-btn" onclick="loadMyHistory()">🔍 Search</button>
+  </div>
+  <div id="myHistoryResults"><div class="loading">⏳ Loading...</div></div>`;
+}
+
+async function loadMyHistory(){
+  const from=document.getElementById("myFromDate")?.value||TKEY;
+  const to=document.getElementById("myToDate")?.value||TKEY;
+  const {data,error}=await sb.from("daily_updates").select("*").eq("employee_id",CU.id).gte("date",from).lte("date",to).order("date",{ascending:false});
+  const el=document.getElementById("myHistoryResults");
+  if(error||!data||!data.length){el.innerHTML='<div class="no-data">📭 Koi update nahi mila.</div>';return;}
+  const col=DC[CU.dept]||"#6b7280";
+  const SC={"Done":"#16a34a","In Progress":"#f59e0b","Not Started":"#6b7280"};
+  el.innerHTML=data.map(u=>{
+    const sc=SC[u.status]||"#6b7280";
+    let tasks=[];try{tasks=JSON.parse(u.tasks||"[]");}catch{}tasks=tasks.filter(t=>t);
+    return `<div class="history-card" style="border-left:3px solid ${col}">
+      <div class="history-card-header">
+        <div style="font-weight:600;font-size:15px">📅 ${fmtDate(u.date)}</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          ${u.submitted_at?`<span style="color:#4b5563;font-size:11px">🕐 ${u.submitted_at}</span>`:""}
+          <span class="status-badge" style="background:${sc}22;color:${sc};border:1px solid ${sc}44">${u.status}</span>
+        </div>
+      </div>
+      ${u.kya_kiya?`<div class="update-block"><div class="update-lbl" style="color:#16a34a">✅ Kya kiya</div><div class="update-txt">${escHtml(u.kya_kiya)}</div></div>`:""}
+      ${tasks.length?`<div class="update-block"><div class="update-lbl" style="color:#9ca3af">📋 Tasks</div>${tasks.map(t=>`<div class="task-line" style="border-left:2px solid ${col}44">• ${escHtml(t)}</div>`).join("")}</div>`:""}
+      ${u.pending?`<div class="update-block"><div class="update-lbl" style="color:#f59e0b">⏳ Pending</div><div class="update-txt">${escHtml(u.pending)}</div></div>`:""}
+    </div>`;
+  }).join("");
+}
+
+// ═══ ADMIN PANEL — PASSWORD MANAGEMENT ═══
+async function loadAdminPanel(){
+  const {data}=await sb.from("user_passwords").select("*");
+  const pm={};if(data)data.forEach(r=>pm[r.user_id]=r.password);
+  const members=USERS.filter(u=>!u.locked);
+  document.getElementById("mainContent").innerHTML=`
+  <div class="section-title">🔐 Manage Employee Passwords</div>
+  <div class="alert-banner" style="background:#0f1c14;border-color:#16a34a44;color:#4ade80">
+    🔒 Sirf Deep Sir ye passwords set/change kar sakte hain. Employees ko unka username + password batao privately.
+  </div>
+  <div class="grid2">${members.map(u=>{
+    const col=DC[u.dept]||"#6b7280";
+    const hasCustom=!!pm[u.id];
+    return `<div class="card" style="border:1px solid ${col}33;padding:16px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <div class="avatar" style="width:36px;height:36px;background:${col}22;border:2px solid ${col};color:${col};font-size:13px">${ini(u.name)}</div>
+        <div style="flex:1"><div style="font-weight:600;font-size:14px">${u.name}</div><div style="color:${col};font-size:11px">${u.role} • username: <b>${u.id}</b></div></div>
+        <span class="status-badge" style="background:${hasCustom?'#16a34a22':'#f59e0b22'};color:${hasCustom?'#16a34a':'#f59e0b'};border:1px solid ${hasCustom?'#16a34a44':'#f59e0b44'}">${hasCustom?'✓ Set':'⚠️ Default'}</span>
+      </div>
+      <input class="task-input" id="pw_${u.id}" type="text" placeholder="Naya password set karo" />
+      <button class="btn-save" style="padding:8px 16px;font-size:12px" onclick="setPassword('${u.id}')">💾 Set Password</button>
+      <span class="saved-tag" id="pwtag_${u.id}" style="margin-left:8px">✓ Saved!</span>
+    </div>`;
+  }).join("")}</div>`;
+}
+
+async function setPassword(userId){
+  const val=document.getElementById(`pw_${userId}`).value.trim();
+  if(!val){alert("Password khali nahi ho sakta!");return;}
+  const {error}=await sb.from("user_passwords").upsert({user_id:userId,password:val},{onConflict:"user_id"});
+  const tag=document.getElementById(`pwtag_${userId}`);
+  tag.style.color=error?"#f87171":"#16a34a";
+  tag.textContent=error?"❌ Error! Table missing?":"✓ Password set!";
+  tag.style.display="inline";
+  setTimeout(()=>tag.style.display="none",3000);
+  if(!error)loadAdminPanel();
+}
+
+// ═══ EXPENSES ═══
+async function loadExpenses(){
+  const now=new Date();
+  const monthStr=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  
+  const {data:expData}=await sb.from("expenses").select("*").order("date",{ascending:false});
+  const {data:advData}=await sb.from("advances").select("*").order("date",{ascending:false});
+  
+  const allExp=expData||[];
+  const allAdv=advData||[];
+  
+  // Get unique months
+  const months=[...new Set(allExp.map(e=>e.date?.slice(0,7)))].sort().reverse();
+  const selMonth=months[0]||monthStr;
+  
+  const monthExp=allExp.filter(e=>e.date?.startsWith(selMonth));
+  const monthAdv=allAdv.filter(a=>a.date?.startsWith(selMonth));
+  
+  const totalExp=monthExp.reduce((s,e)=>s+(e.amount||0),0);
+  const totalAdv=monthAdv.reduce((s,a)=>s+(a.amount||0),0);
+  const balance=totalAdv-totalExp;
+  
+  const isPiyush=CU.id==="piyush";
+  const isAdmin=CU.isAdmin;
+  
+  document.getElementById("mainContent").innerHTML=`
+  <div class="section-title">💰 Expense Tracker — Lavista</div>
+  
+  <!-- Month Filter -->
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+    <label class="form-label" style="margin:0">Month:</label>
+    <select class="month-select" id="monthSel" onchange="filterExpenses(this.value)">
+      ${months.map(m=>`<option value="${m}" ${m===selMonth?"selected":""}>${m}</option>`).join("")}
+      <option value="${monthStr}" ${!months.includes(monthStr)?"selected":""}>Current Month</option>
+    </select>
+  </div>
+
+  <!-- Summary -->
+  <div class="summary-grid">
+    <div class="summary-box" style="border:1px solid #f9731644">
+      <div class="summary-val" style="color:#f97316">₹${totalExp.toLocaleString("en-IN")}</div>
+      <div class="summary-lbl">Total Kharcha</div>
+    </div>
+    <div class="summary-box" style="border:1px solid #16a34a44">
+      <div class="summary-val" style="color:#4ade80">₹${totalAdv.toLocaleString("en-IN")}</div>
+      <div class="summary-lbl">Total Advance (Deep Sir)</div>
+    </div>
+    <div class="summary-box" style="border:1px solid ${balance>=0?"#3b82f6":"#ef4444"}44">
+      <div class="summary-val" style="color:${balance>=0?"#60a5fa":"#f87171"}">${balance>=0?"₹"+balance.toLocaleString("en-IN"):"−₹"+Math.abs(balance).toLocaleString("en-IN")}</div>
+      <div class="summary-lbl">${balance>=0?"Balance Remaining":"Baaki Dena Hai"}</div>
+    </div>
+  </div>
+
+  <!-- Add Expense Form (Piyush only) -->
+  ${isPiyush||isAdmin?`
+  <div class="exp-form">
+    <div style="font-size:14px;font-weight:700;margin-bottom:14px;color:#e5e7eb">➕ Naya Kharcha Add Karo</div>
+    <div class="exp-grid">
+      <div>
+        <label class="form-label">Amount (₹)</label>
+        <input class="exp-input" id="expAmt" type="number" placeholder="e.g. 500" />
+      </div>
+      <div>
+        <label class="form-label">Category</label>
+        <input class="exp-input" id="expCat" placeholder="e.g. Travel, Food, Office" list="catList" />
+        <datalist id="catList">
+          <option value="Office Supplies">
+          <option value="Travel">
+          <option value="Food & Tea">
+          <option value="Marketing">
+          <option value="Software/Tools">
+          <option value="Mobile Recharge">
+          <option value="Subscription">
+          <option value="Printing">
+          <option value="Electricity">
+          <option value="Internet">
+          <option value="Misc">
+        </datalist>
+      </div>
+      <div>
+        <label class="form-label">Date</label>
+        <input class="exp-input" id="expDate" type="date" value="${TKEY}" />
+      </div>
+    </div>
+    <div style="margin-bottom:14px">
+      <label class="form-label">Description</label>
+      <input class="exp-input" id="expDesc" placeholder="Kya kharcha kiya — detail me likho" />
+    </div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <button class="btn-exp" onclick="addExpense()">💾 Add Kharcha</button>
+      <span id="expTag" style="display:none;color:#4ade80;font-size:13px">✓ Saved!</span>
+    </div>
+  </div>`:""}
+
+  <!-- Add Advance Form (Admin only) -->
+  ${isAdmin?`
+  <div class="adv-form">
+    <div class="adv-form-title">💵 Advance Diya (Deep Sir → Piyush)</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px">
+      <div>
+        <label class="form-label">Amount (₹)</label>
+        <input class="exp-input" id="advAmt" type="number" placeholder="e.g. 5000" />
+      </div>
+      <div>
+        <label class="form-label">Date</label>
+        <input class="exp-input" id="advDate" type="date" value="${TKEY}" />
+      </div>
+      <div>
+        <label class="form-label">Note</label>
+        <input class="exp-input" id="advNote" placeholder="e.g. Monthly advance" />
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <button class="btn-exp" onclick="addAdvance()">💾 Advance Add Karo</button>
+      <span id="advTag" style="display:none;color:#4ade80;font-size:13px">✓ Saved!</span>
+    </div>
+  </div>`:""}
+
+  <!-- Expenses List -->
+  <div style="font-size:14px;font-weight:700;margin-bottom:12px">📋 ${selMonth} — Kharche ki List</div>
+  ${monthExp.length?monthExp.map(e=>`
+  <div class="exp-card">
+    <div class="exp-amount">₹${(e.amount||0).toLocaleString("en-IN")}</div>
+    <span class="exp-cat">${escHtml(e.category||"Misc")}</span>
+    <div class="exp-desc">${escHtml(e.description||"")}</div>
+    <div class="exp-date">📅 ${fmtDate(e.date)} ${e.added_by?`• ${e.added_by}`:""}</div>
+    ${isAdmin?`<button class="exp-del" onclick="deleteExpense(${e.id})">🗑️</button>`:""}
+  </div>`).join(""):`<div class="no-data">📭 Is month me koi kharcha nahi add hua.</div>`}
+
+  <!-- Advances List -->
+  ${allAdv.length?`<div style="font-size:14px;font-weight:700;margin:20px 0 12px">💵 Advance History</div>
+  ${monthAdv.map(a=>`
+  <div class="exp-card" style="border:1px solid #16a34a33">
+    <div class="exp-amount advance">₹${(a.amount||0).toLocaleString("en-IN")}</div>
+    <span class="exp-cat" style="background:#0f1c14;color:#4ade80">Advance</span>
+    <div class="exp-desc">${escHtml(a.note||"Advance diya")}</div>
+    <div class="exp-date">📅 ${fmtDate(a.date)}</div>
+    ${isAdmin?`<button class="exp-del" onclick="deleteAdvance(${a.id})">🗑️</button>`:""}
+  </div>`).join("")}`:""}
+  `;
+}
+
+async function filterExpenses(month){
+  // Re-render with selected month
+  const now=new Date();
+  const {data:expData}=await sb.from("expenses").select("*").order("date",{ascending:false});
+  const {data:advData}=await sb.from("advances").select("*").order("date",{ascending:false});
+  const allExp=expData||[];
+  const allAdv=advData||[];
+  const monthExp=allExp.filter(e=>e.date?.startsWith(month));
+  const monthAdv=allAdv.filter(a=>a.date?.startsWith(month));
+  const totalExp=monthExp.reduce((s,e)=>s+(e.amount||0),0);
+  const totalAdv=monthAdv.reduce((s,a)=>s+(a.amount||0),0);
+  const balance=totalAdv-totalExp;
+  // Update summary
+  document.querySelector(".summary-grid").innerHTML=`
+    <div class="summary-box" style="border:1px solid #f9731644"><div class="summary-val" style="color:#f97316">₹${totalExp.toLocaleString("en-IN")}</div><div class="summary-lbl">Total Kharcha</div></div>
+    <div class="summary-box" style="border:1px solid #16a34a44"><div class="summary-val" style="color:#4ade80">₹${totalAdv.toLocaleString("en-IN")}</div><div class="summary-lbl">Total Advance</div></div>
+    <div class="summary-box" style="border:1px solid ${balance>=0?"#3b82f6":"#ef4444"}44"><div class="summary-val" style="color:${balance>=0?"#60a5fa":"#f87171"}">${balance>=0?"₹"+balance.toLocaleString("en-IN"):"−₹"+Math.abs(balance).toLocaleString("en-IN")}</div><div class="summary-lbl">${balance>=0?"Balance":"Baaki Dena Hai"}</div></div>`;
+}
+
+async function addExpense(){
+  const amt=parseFloat(document.getElementById("expAmt").value);
+  const cat=document.getElementById("expCat").value.trim();
+  const desc=document.getElementById("expDesc").value.trim();
+  const date=document.getElementById("expDate").value;
+  if(!amt||!desc){alert("Amount aur description zaroori hai!");return;}
+  const {error}=await sb.from("expenses").insert({
+    amount:amt,category:cat||"Misc",description:desc,date:date,
+    added_by:CU.name,employee_id:CU.id
+  });
+  const tag=document.getElementById("expTag");
+  tag.style.display="inline";
+  tag.textContent=error?"❌ Error!":"✓ Saved!";
+  tag.style.color=error?"#f87171":"#4ade80";
+  if(!error){
+    document.getElementById("expAmt").value="";
+    document.getElementById("expCat").value="";
+    document.getElementById("expDesc").value="";
+    setTimeout(()=>loadExpenses(),800);
+  }
+}
+
+async function addAdvance(){
+  const amt=parseFloat(document.getElementById("advAmt").value);
+  const date=document.getElementById("advDate").value;
+  const note=document.getElementById("advNote").value.trim();
+  if(!amt){alert("Amount zaroori hai!");return;}
+  const {error}=await sb.from("advances").insert({amount:amt,date:date,note:note||"Advance diya"});
+  const tag=document.getElementById("advTag");
+  tag.style.display="inline";
+  tag.textContent=error?"❌ Error!":"✓ Saved!";
+  tag.style.color=error?"#f87171":"#4ade80";
+  if(!error){
+    document.getElementById("advAmt").value="";
+    document.getElementById("advNote").value="";
+    setTimeout(()=>loadExpenses(),800);
+  }
+}
+
+async function deleteExpense(id){
+  if(!confirm("Ye expense delete karna chahte ho?"))return;
+  await sb.from("expenses").delete().eq("id",id);
+  loadExpenses();
+}
+
+async function deleteAdvance(id){
+  if(!confirm("Ye advance delete karna chahte ho?"))return;
+  await sb.from("advances").delete().eq("id",id);
+  loadExpenses();
+}
+
+// ═══ ATTENDANCE ═══
+const OFFICE_LAT = 23.0522;
+const OFFICE_LNG = 72.5339;
+const OFFICE_RADIUS = 300; // meters
+const PRESENT_CUTOFF = "10:30";
+const LATE_CUTOFF = "12:00";
+
+function getDistanceMeters(lat1, lng1, lat2, lng2) {
+  const R = 6371000;
+  const dLat = (lat2-lat1)*Math.PI/180;
+  const dLng = (lng2-lng1)*Math.PI/180;
+  const a = Math.sin(dLat/2)*Math.sin(dLat/2) +
+    Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*
+    Math.sin(dLng/2)*Math.sin(dLng/2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function getAttStatus(timeStr) {
+  if (!timeStr) return null;
+  const [h, m] = timeStr.split(":").map(Number);
+  const mins = h * 60 + m;
+  const presentMins = 10*60+30;
+  const lateMins = 12*60;
+  if (mins <= presentMins) return "present";
+  if (mins < lateMins) return "late";
+  return "halfday";
+}
+
+function attBadge(status) {
+  const map = {
+    present: {bg:"#16a34a22",color:"#4ade80",label:"✅ Present"},
+    late: {bg:"#f59e0b22",color:"#fbbf24",label:"⚠️ Late"},
+    halfday: {bg:"#f97316",color:"#fff",label:"🟡 Half Day"},
+    absent: {bg:"#ef444422",color:"#f87171",label:"❌ Absent"},
+    weekoff: {bg:"#1a1a2e",color:"#6b7280",label:"🔵 Week Off"},
+    leave: {bg:"#7c3aed22",color:"#a78bfa",label:"🟣 Leave"},
+  };
+  const s = map[status] || map.absent;
+  return `<span class="att-badge" style="background:${s.bg};color:${s.color}">${s.label}</span>`;
+}
+
+async function loadAttendance() {
+  const isSunday = new Date().getDay() === 0;
+  const now = new Date();
+  const timeStr = `${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
+
+  // Check if already marked today
+  const {data: todayAttArr} = await sb.from("attendance")
+    .select("*").eq("employee_id", CU.id).eq("date", TKEY).limit(1);
+  const todayAtt = todayAttArr&&todayAttArr.length?todayAttArr[0]:null;
+
+  let statusHtml = "";
+  let actionHtml = "";
+
+  if (isSunday) {
+    statusHtml = `<div class="att-status-icon">🔵</div>
+    <div class="att-status-text">Week Off</div>
+    <div class="att-status-sub">Aaj Sunday hai — enjoy your day! 😊</div>`;
+  } else if (todayAtt) {
+    const s = todayAtt.status;
+    const icons = {present:"✅",late:"⚠️",halfday:"🟡",absent:"❌",leave:"🟣"};
+    statusHtml = `<div class="att-status-icon">${icons[s]||"📋"}</div>
+    <div class="att-status-text">${attBadge(s)}</div>
+    <div class="att-status-sub">Login time: ${todayAtt.login_time||"—"} • ${TSTR}</div>`;
+    actionHtml = `<div style="color:#4b5563;font-size:13px;margin-top:12px">Aaj ki attendance mark ho gayi hai.</div>`;
+  } else {
+    const cutoffPassed = timeStr > LATE_CUTOFF;
+    statusHtml = `<div class="att-status-icon">🕐</div>
+    <div class="att-status-text" style="color:#f59e0b">Attendance Pending</div>
+    <div class="att-status-sub">${TSTR} • Abhi: ${timeStr}</div>`;
+    actionHtml = `
+    <div class="location-err" id="locErr">❌ Aap office se bahut door hain! Office aake attendance mark karo. (100-150m radius me hona zaroori hai)</div>
+    <button class="btn-mark-present" id="markBtn" onclick="markAttendance()">
+      📍 Office Se Attendance Mark Karo
+    </button>
+    <div style="color:#6b7280;font-size:12px;margin-top:10px">
+      ⚠️ Location verify hogi — sirf office ke andar se mark ho sakti hai
+    </div>`;
+  }
+
+  // My monthly summary
+  const monthStart = TKEY.slice(0,7) + "-01";
+  const {data: monthData} = await sb.from("attendance").select("*")
+    .eq("employee_id", CU.id).gte("date", monthStart).lte("date", TKEY);
+
+  const monthAtt = monthData || [];
+  const presentCount = monthAtt.filter(a=>a.status==="present").length;
+  const lateCount = monthAtt.filter(a=>a.status==="late").length;
+  const halfCount = monthAtt.filter(a=>a.status==="halfday").length;
+  const absentCount = monthAtt.filter(a=>a.status==="absent").length;
+
+  // Employee sirf apni attendance dekh sakta hai - no edit
+  document.getElementById("mainContent").innerHTML = `
+  <div class="section-title">🕐 Attendance — ${CU.name}</div>
+  <div class="att-card">
+    ${statusHtml}
+    ${actionHtml}
+  </div>
+  <div class="att-info-grid">
+    <div class="att-info-box" style="border:1px solid #16a34a44"><div class="att-info-val" style="color:#4ade80">${presentCount}</div><div class="att-info-lbl">Present</div></div>
+    <div class="att-info-box" style="border:1px solid #f59e0b44"><div class="att-info-val" style="color:#fbbf24">${lateCount}</div><div class="att-info-lbl">Late</div></div>
+    <div class="att-info-box" style="border:1px solid #f9731644"><div class="att-info-val" style="color:#fb923c">${halfCount}</div><div class="att-info-lbl">Half Day</div></div>
+  </div>
+  <div style="font-size:13px;color:#6b7280;text-align:center;margin-bottom:8px">
+    📅 Is mahine: ${presentCount} Present • ${lateCount} Late • ${halfCount} Half Day • ${absentCount} Absent
+  </div>`;
+}
+
+async function markAttendance() {
+  const btn = document.getElementById("markBtn");
+  const errEl = document.getElementById("locErr");
+  btn.disabled = true;
+  btn.textContent = "📡 Location check ho rahi hai...";
+  errEl.classList.remove("show");
+
+  if (!navigator.geolocation) {
+    btn.textContent = "❌ GPS not supported";
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(async pos => {
+    const dist = getDistanceMeters(pos.coords.latitude, pos.coords.longitude, OFFICE_LAT, OFFICE_LNG);
+    
+    if (dist > OFFICE_RADIUS) {
+      errEl.classList.add("show");
+      errEl.textContent = `❌ Aap office se ${Math.round(dist)}m door hain! Office aake attendance mark karo. (${OFFICE_RADIUS}m radius me hona zaroori hai)`;
+      btn.disabled = false;
+      btn.textContent = "📍 Office Se Attendance Mark Karo";
+      return;
+    }
+
+    const now = new Date();
+    const timeStr = `${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
+    const status = getAttStatus(timeStr);
+
+    const {error} = await sb.from("attendance").upsert({
+      employee_id: CU.id,
+      employee_name: CU.name,
+      role: CU.role,
+      dept: CU.dept,
+      date: TKEY,
+      login_time: timeStr,
+      status: status,
+      lat: pos.coords.latitude,
+      lng: pos.coords.longitude
+    }, {onConflict: "employee_id,date"});
+
+    if (error) {
+      btn.textContent = "❌ Error! Try again.";
+      btn.disabled = false;
+    } else {
+      loadAttendance();
+    }
+  }, err => {
+    errEl.classList.add("show");
+    errEl.textContent = "❌ Location access denied. Settings me GPS allow karo.";
+    btn.disabled = false;
+    btn.textContent = "📍 Office Se Attendance Mark Karo";
+  }, {enableHighAccuracy: true, timeout: 10000});
+}
+
+// ═══ ATTENDANCE REPORT (ADMIN) ═══
+async function loadAttReport() {
+  const monthStart = TKEY.slice(0,7) + "-01";
+  const {data} = await sb.from("attendance").select("*")
+    .gte("date", monthStart).lte("date", TKEY).order("date", {ascending:false});
+
+  const allAtt = data || [];
+  const members = USERS.filter(u => !u.isAdmin);
+
+  // Auto-mark absent for past days where no entry
+  const today = new Date();
+  const presentCounts = {};
+  const lateCounts = {};
+  const absentCounts = {};
+  const halfCounts = {};
+
+  members.forEach(u => {
+    presentCounts[u.id] = allAtt.filter(a=>a.employee_id===u.id&&a.status==="present").length;
+    lateCounts[u.id] = allAtt.filter(a=>a.employee_id===u.id&&a.status==="late").length;
+    halfCounts[u.id] = allAtt.filter(a=>a.employee_id===u.id&&a.status==="halfday").length;
+    absentCounts[u.id] = allAtt.filter(a=>a.employee_id===u.id&&a.status==="absent").length;
+  });
+
+  const totalPresent = allAtt.filter(a=>a.status==="present").length;
+  const totalLate = allAtt.filter(a=>a.status==="late").length;
+  const totalAbsent = allAtt.filter(a=>a.status==="absent").length;
+
+  document.getElementById("mainContent").innerHTML = `
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+    <div class="section-title" style="margin-bottom:0">📊 Attendance Report — ${TKEY.slice(0,7)}</div>
+    <div style="display:flex;gap:8px">
+      <button class="refresh-btn" onclick="autoMarkAbsent()">🔄 Auto-Mark Absent</button>
+      <button class="refresh-btn" onclick="loadAttReport()">🔄 Refresh</button>
+    </div>
+  </div>
+  <div class="att-info-grid" style="margin-bottom:20px">
+    <div class="att-info-box" style="border:1px solid #16a34a44"><div class="att-info-val" style="color:#4ade80">${totalPresent}</div><div class="att-info-lbl">Total Present</div></div>
+    <div class="att-info-box" style="border:1px solid #f59e0b44"><div class="att-info-val" style="color:#fbbf24">${totalLate}</div><div class="att-info-lbl">Total Late</div></div>
+    <div class="att-info-box" style="border:1px solid #ef444444"><div class="att-info-val" style="color:#f87171">${totalAbsent}</div><div class="att-info-lbl">Total Absent</div></div>
+  </div>
+  <div style="background:#111118;border:1px solid #1e1e2e;border-radius:14px;overflow:hidden">
+    <div style="padding:14px 16px;border-bottom:1px solid #1e1e2e;display:grid;grid-template-columns:1fr 1fr 80px 80px 80px 80px 160px;gap:8px;font-size:11px;color:#6b7280;text-transform:uppercase">
+      <span>Name</span><span>Role</span><span>Present</span><span>Late</span><span>Half</span><span>Absent</span><span>Today + Timing</span>
+    </div>
+    ${members.map(u => {
+      const col = DC[u.dept]||"#6b7280";
+      const todayAttItem = allAtt.find(a=>a.employee_id===u.id&&a.date===TKEY);
+      return `<div class="att-row">
+        <div style="display:flex;align-items:center;gap:8px;min-width:100px">
+          <div class="avatar" style="width:28px;height:28px;background:${col}22;border:1px solid ${col};color:${col};font-size:10px">${ini(u.name)}</div>
+          <span style="font-weight:600;font-size:13px">${u.name}</span>
+        </div>
+        <span style="font-size:11px;color:#6b7280">${u.role}</span>
+        <span style="color:#4ade80;font-weight:700;text-align:center">${presentCounts[u.id]||0}</span>
+        <span style="color:#fbbf24;font-weight:700;text-align:center">${lateCounts[u.id]||0}</span>
+        <span style="color:#fb923c;font-weight:700;text-align:center">${halfCounts[u.id]||0}</span>
+        <span style="color:#f87171;font-weight:700;text-align:center">${absentCounts[u.id]||0}</span>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <div style="display:flex;gap:4px;align-items:center">
+            ${attBadge(todayAttItem?.status||"absent")}
+            <select onchange="adminOverride('${u.id}',this.value)" style="background:#1a1a2e;border:1px solid #2d2d44;border-radius:6px;padding:2px 6px;color:#fff;font-size:10px;cursor:pointer">
+              <option value="">Edit</option>
+              <option value="present">Present</option>
+              <option value="late">Late</option>
+              <option value="halfday">Half Day</option>
+              <option value="absent">Absent</option>
+              <option value="leave">Leave</option>
+              <option value="weekoff">Week Off</option>
+            </select>
+          </div>
+          <div style="font-size:10px;color:#6b7280">
+            🕐 In: ${todayAttItem?.login_time||"—"} 
+            ${todayAttItem?.logout_time?`• Out: <span style="color:${todayAttItem.logout_time<"19:00"?"#f87171":"#4ade80"}">${todayAttItem.logout_time}</span>`:`• <span style="color:#f59e0b">Not logged out</span>`}
+          </div>
+        </div>
+      </div>`;
+    }).join("")}
+  </div>`;
+}
+
+async function adminOverride(empId, status) {
+  if (!status) return;
+  const u = USERS.find(x=>x.id===empId);
+  await sb.from("attendance").upsert({
+    employee_id: empId,
+    employee_name: u?.name||empId,
+    role: u?.role||"",
+    dept: u?.dept||"",
+    date: TKEY,
+    status: status,
+    login_time: status==="absent"?"—":"admin override"
+  }, {onConflict:"employee_id,date"});
+  loadAttReport();
+}
+
+async function autoMarkAbsent() {
+  const members = USERS.filter(u=>!u.isAdmin);
+  const now = new Date();
+  if (now.getHours() < 12) {
+    alert("Auto-absent sirf dopahar 12 baje ke baad kar sakte ho.");
+    return;
+  }
+  const isSunday = now.getDay() === 0;
+  for (const u of members) {
+    const {data} = await sb.from("attendance").select("id").eq("employee_id",u.id).eq("date",TKEY).maybeSingle();
+    if (!data) {
+      await sb.from("attendance").insert({
+        employee_id:u.id, employee_name:u.name, role:u.role, dept:u.dept,
+        date:TKEY, status:isSunday?"weekoff":"absent", login_time:"—"
+      });
+    }
+  }
+  loadAttReport();
+  alert("✅ Jo log nahi aaye unhe absent/weekoff mark kar diya!");
+}
+</script>
+</body>
+</html>
