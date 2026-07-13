@@ -328,10 +328,14 @@
    SETUP — fill these two lines with your own Supabase project
    (Project Settings → API). Same project your Lavista CRM uses
    works fine — just add the table below to it.
+
+   NOTE: table is named "hr_punch_log", NOT "attendance" — your
+   CRM already has its own "attendance" table with a different
+   structure, so this uses a separate name to avoid any clash.
    ============================================================
    SQL to run once in Supabase SQL editor:
 
-   create table attendance (
+   create table hr_punch_log (
      id bigint generated always as identity primary key,
      employee_name text not null,
      work_date date not null,
@@ -342,15 +346,15 @@
      day_status text,
      created_at timestamptz default now()
    );
-   alter table attendance enable row level security;
-   create policy "public read/write" on attendance for all using (true) with check (true);
+   alter table hr_punch_log enable row level security;
+   create policy "public read/write" on hr_punch_log for all using (true) with check (true);
 
    -- needed so admin can mark "Week Off" without creating duplicate rows
-   alter table attendance add constraint attendance_emp_date_unique unique (employee_name, work_date);
+   alter table hr_punch_log add constraint hr_punch_log_emp_date_unique unique (employee_name, work_date);
 
    ============================================================ */
-const SUPABASE_URL = "YOUR_SUPABASE_URL";
-const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
+const SUPABASE_URL = "https://dfduzpsnzruzsdjipgww.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_LA6lqjm2yy7DzCDURwjUjg_dAW1-vki";
 const ADMIN_PIN = "2468"; // change this — only Deep Sir should know this
 
 // Edit this list to match your team.
@@ -542,7 +546,7 @@ async function refreshStatus(){
     setStatus('done','Week Off — enjoy!');
     return;
   }
-  const { data, error } = await sb.from('attendance')
+  const { data, error } = await sb.from('hr_punch_log')
     .select('*')
     .eq('employee_name', name)
     .eq('work_date', todayStr())
@@ -610,7 +614,7 @@ btnIn.addEventListener('click', async ()=>{
   const nowIso = new Date().toISOString();
   const dayStatus = computeDayStatus(nowIso);
 
-  const { error } = await sb.from('attendance').insert({
+  const { error } = await sb.from('hr_punch_log').insert({
     employee_name: name,
     work_date: todayStr(),
     punch_in: nowIso,
@@ -655,7 +659,7 @@ btnOut.addEventListener('click', async ()=>{
 
   const nowIso = new Date().toISOString();
 
-  const { error } = await sb.from('attendance')
+  const { error } = await sb.from('hr_punch_log')
     .update({ punch_out: nowIso, out_lat: loc.lat, out_lng: loc.lng })
     .eq('id', currentRow.id);
 
@@ -721,7 +725,7 @@ document.getElementById('markWeekOffBtn').addEventListener('click', async ()=>{
   if(!name || !date) return;
   msg.textContent = 'Saving…'; msg.className = 'msg';
 
-  const { error } = await sb.from('attendance')
+  const { error } = await sb.from('hr_punch_log')
     .upsert({ employee_name: name, work_date: date, day_status: 'Week Off' },
              { onConflict: 'employee_name,work_date' });
 
@@ -739,7 +743,7 @@ document.getElementById('markWeekOffBtn').addEventListener('click', async ()=>{
 async function loadAdminData(date){
   const wrap = document.getElementById('tblWrap');
   wrap.innerHTML = '<div class="empty">Loading…</div>';
-  const { data, error } = await sb.from('attendance')
+  const { data, error } = await sb.from('hr_punch_log')
     .select('*')
     .eq('work_date', date)
     .order('punch_in', {ascending:true});
@@ -801,7 +805,7 @@ async function loadMonthlySummary(monthStr){ // format: YYYY-MM
   const lastDay = new Date(y, m, 0).getDate();
   const end = `${monthStr}-${pad(lastDay)}`;
 
-  const { data, error } = await sb.from('attendance')
+  const { data, error } = await sb.from('hr_punch_log')
     .select('*')
     .gte('work_date', start)
     .lte('work_date', end);
