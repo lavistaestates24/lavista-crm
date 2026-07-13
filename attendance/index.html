@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lavista Attendance</title>
+<style>
+  :root{
+    --ink:#1A1A1A;
+    --brown:#2B2620;
+    --brown-2:#3A332A;
+    --gold:#C9A24B;
+    --gold-2:#C9A84C;
+    --cream:#F5F1E8;
+    --line:rgba(201,162,75,0.25);
+    --good:#7BA37B;
+    --late:#C97757;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    min-height:100vh;
+    background:
+      radial-gradient(1200px 600px at 20% -10%, rgba(201,162,75,0.10), transparent 60%),
+      var(--ink);
+    color:var(--cream);
+    font-family:'Georgia', 'Iowan Old Style', serif;
+    display:flex;
+    align-items:flex-start;
+    justify-content:center;
+    padding:32px 16px 80px;
+  }
+  .app{width:100%;max-width:480px;}
+  .brand{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    margin-bottom:28px;
+  }
+  .brand .name{
+    font-family:'Trebuchet MS', sans-serif;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    font-size:12px;
+    color:var(--gold);
+    font-weight:700;
+  }
+  .brand .tag{
+    font-family:'Trebuchet MS', sans-serif;
+    font-size:11px;
+    color:rgba(245,241,232,0.45);
+  }
+  .card{
+    background:var(--brown);
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding:32px 28px;
+    position:relative;
+    overflow:hidden;
+  }
+  .card::before{
+    content:'';
+    position:absolute;
+    top:0;left:0;right:0;
+    height:3px;
+    background:linear-gradient(90deg, var(--gold), transparent 70%);
+  }
+  .clock{
+    font-family:'Courier New', monospace;
+    font-size:52px;
+    font-weight:700;
+    letter-spacing:0.02em;
+    color:var(--gold);
+    line-height:1;
+    margin-bottom:2px;
+  }
+  .date{
+    font-family:'Trebuchet MS', sans-serif;
+    font-size:13px;
+    color:rgba(245,241,232,0.55);
+    margin-bottom:26px;
+    letter-spacing:0.03em;
+  }
+  label{
+    display:block;
+    font-family:'Trebuchet MS', sans-serif;
+    font-size:11px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color:rgba(245,241,232,0.5);
+    margin-bottom:8px;
+  }
+  select{
+    width:100%;
+    padding:14px 12px;
+    background:var(--brown-2);
+    border:1px solid var(--line);
+    border-radius:3px;
+    color:var(--cream);
+    font-family:'Trebuchet MS', sans-serif;
+    font-size:15px;
+    margin-bottom:22px;
+    appearance:none;
+  }
+  select:focus{outline:2px solid var(--gold); outline-offset:1px;}
+
+  .status-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:14px 0;
+    border-top:1px solid var(--line);
+    margin-bottom:20px;
+    font-family:'Trebuchet MS', sans-serif;
+    font-size:13px;
+  }
+  .status-row .lab{color:rgba(245,241,232,0.5);}
+  .pill{
+    padding:4px 10px;
+    border-radius:20px;
+    font-size:11px;
+    letter-spacing:0.04em;
+    text-transform:uppercase;
+    font-weight:700;
+  }
+  .pill.wait{background:rgba(245,241,232,0.08); color:rgba(245,241,232,0.6);}
+  .pill.in{background:rgba(123,163,123,0.18); color:var(--good);}
+  .pill.late{background:rgba(201,119,87,0.18); color:var(--late);}
+  .pill.done{background:rgba(201,162,75,0.18); color:var(--gold);}
+
+  .btns{display:flex; gap:12px;}
+  button{
+    flex:1;
+    padding:16px 0;
+    border:none;
+    border-radius:3px;
+    font-family:'Trebuchet MS', sans-serif;
+    font-size:14px;
+    font-weight:700;
+    letter-spacing:0.05em;
+    text-transform:uppercase;
+    cursor:pointer;
+    transition:transform 0.15s ease, opacity 0.15s ease;
+  }
+  button:active{transform:scale(0.97);}
+  button:disabled{opacity:0.35; cursor:not-allowed;}
+  .btn-in{background:var(--gold); color:var(--ink);}
+  .btn-out{background:transparent; color:var(--gold); border:1px solid var(--gold);}
+
+  .msg{
+    margin-top:16px;
+    font-family:'Trebuchet MS', sans-serif;
+    font-size:12.5px;
+    color:rgba(245,241,232,0.55);
+    text-align:center;
+    min-height:18px;
+  }
+  .msg.err{color:var(--late);}
+  .msg.ok{color:var(--good);}
+
+  .stamp{
+    position:absolute;
+    right:-40px; top:20px;
+    width:150px; height:150px;
+    border:3px solid var(--gold);
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transform:rotate(18deg) scale(0);
+    opacity:0;
+    pointer-events:none;
+    transition:transform 0.45s cubic-bezier(.2,1.4,.4,1), opacity 0.3s ease;
+  }
+  .stamp.show{transform:rotate(18deg) scale(1); opacity:0.9;}
+  .stamp span{
+    font-family:'Trebuchet MS', sans-serif;
+    font-size:13px;
+    font-weight:800;
+    letter-spacing:0.08em;
+    color:var(--gold);
+    text-transform:uppercase;
+  }
+
+  .admin-link{
+    display:block;
+    text-align:center;
+    margin-top:22px;
+    font-family:'Trebuchet MS', sans-serif;
+    font-size:11px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:rgba(245,241,232,0.35);
+    text-decoration:none;
+    cursor:pointer;
+  }
+  .admin-link:hover{color:var(--gold);}
+
+  /* Admin view */
+  .admin-wrap{display:none;}
+  .admin-wrap.show{display:block;}
+  .kiosk-wrap.hide{display:none;}
+  .admin-header{display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;}
+  .admin-header h2{
+    font-family:'Trebuchet MS', sans-serif;
+    font-size:16px;
+    color:var(--gold);
+    margin:0;
+    letter-spacing:0.03em;
+  }
+  .back{
+    font-family:'Trebuchet MS', sans-serif;
+    font-size:11px;
+    color:rgba(245,241,232,0.5);
+    cursor:pointer;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+  }
+  input[type=password], input[type=date]{
+    width:100%;
+    padding:12px;
+    background:var(--brown-2);
+    border:1px solid var(--line);
+    border-radius:3px;
+    color:var(--cream);
+    font-family:'Trebuchet MS', sans-serif;
+    font-size:14px;
+    margin-bottom:14px;
+  }
+  table{width:100%; border-collapse:collapse; font-family:'Trebuchet MS', sans-serif; font-size:12.5px;}
+  th{
+    text-align:left;
+    padding:8px 6px;
+    color:rgba(245,241,232,0.45);
+    text-transform:uppercase;
+    font-size:10px;
+    letter-spacing:0.06em;
+    border-bottom:1px solid var(--line);
+  }
+  td{padding:9px 6px; border-bottom:1px solid rgba(201,162,75,0.1);}
+  .tbl-scroll{max-height:420px; overflow-y:auto; margin-top:10px;}
+  .empty{
+    text-align:center;
+    padding:30px 0;
+    color:rgba(245,241,232,0.35);
+    font-family:'Trebuchet MS', sans-serif;
+    font-size:13px;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="brand">
+    <div class="name">Lavista</div>
+    <div class="tag">Attendance</div>
+  </div>
+
+  <!-- KIOSK / PUNCH VIEW -->
+  <div class="kiosk-wrap" id="kioskWrap">
+    <div class="card">
+      <div class="stamp" id="stamp"><span id="stampText">Punched In</span></div>
+      <div class="clock" id="clock">--:--:--</div>
+      <div class="date" id="dateLabel">-</div>
+
+      <label for="empSelect">Employee</label>
+      <select id="empSelect">
+        <option value="">Select your name</option>
+      </select>
+
+      <div class="status-row">
+        <span class="lab">Today's status</span>
+        <span class="pill wait" id="statusPill">Select name</span>
+      </div>
+
+      <div class="btns">
+        <button class="btn-in" id="btnIn" disabled>Punch In</button>
+        <button class="btn-out" id="btnOut" disabled>Punch Out</button>
+      </div>
+      <div class="msg" id="msg"></div>
+    </div>
+    <a class="admin-link" id="showAdmin">Admin view</a>
+  </div>
+
+  <!-- ADMIN VIEW -->
+  <div class="admin-wrap" id="adminWrap">
+    <div class="card">
+      <div class="admin-header">
+        <h2>Admin — Daily Log</h2>
+        <span class="back" id="backToKiosk">Back</span>
+      </div>
+
+      <div id="pinGate">
+        <label for="pinInput">Enter admin PIN</label>
+        <input type="password" id="pinInput" placeholder="••••">
+        <button class="btn-in" style="width:100%" id="pinSubmit">Unlock</button>
+        <div class="msg" id="pinMsg"></div>
+      </div>
+
+      <div id="adminBody" style="display:none;">
+        <label for="dateFilter">Date</label>
+        <input type="date" id="dateFilter">
+        <div class="tbl-scroll" id="tblWrap">
+          <div class="empty">Loading…</div>
+        </div>
+
+        <div style="margin-top:14px;">
+          <label for="weekOffEmpSelect">Mark Week Off for this date (flexible-off staff)</label>
+          <select id="weekOffEmpSelect"></select>
+          <button class="btn-in" style="width:100%;margin-top:8px;" id="markWeekOffBtn">Mark Week Off</button>
+          <div class="msg" id="weekOffMsg"></div>
+        </div>
+
+        <div style="height:1px;background:var(--line);margin:24px 0;"></div>
+
+        <label for="monthFilter">Monthly summary (for salary)</label>
+        <input type="month" id="monthFilter">
+        <div id="summaryWrap">
+          <div class="empty">Select a month</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+/* ============================================================
+   SETUP — fill these two lines with your own Supabase project
+   (Project Settings → API). Same project your Lavista CRM uses
+   works fine — just add the table below to it.
+   ============================================================
+   SQL to run once in Supabase SQL editor:
+
+   create table attendance (
+     id bigint generated always as identity primary key,
+     employee_name text not null,
+     work_date date not null,
+     punch_in timestamptz,
+     punch_out timestamptz,
+     in_lat float8, in_lng float8,
+     out_lat float8, out_lng float8,
+     day_status text,
+     created_at timestamptz default now()
+   );
+   alter table attendance enable row level security;
+   create policy "public read/write" on attendance for all using (true) with check (true);
+
+   -- needed so admin can mark "Week Off" without creating duplicate rows
+   alter table attendance add constraint attendance_emp_date_unique unique (employee_name, work_date);
+
+   ============================================================ */
+const SUPABASE_URL = "YOUR_SUPABASE_URL";
+const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
+const ADMIN_PIN = "2468"; // change this — only Deep Sir should know this
+
+// Edit this list to match your team.
+// team        : just a label, used for grouping — doesn't affect logic directly
+// shiftStart  : "HH:MM" (24-hr) — their own office start time. Late = shiftStart + 15 min grace.
+// weeklyOff   : a day name ("Sunday") for FIXED weekly-off teams (auto — no punch needed,
+//               never counted absent). Use null for FLEXIBLE weekly-off teams (Real Estate/Sales)
+//               — Deep Sir marks their week-off manually in the admin view instead.
+// active      : set false to hide someone from the punch dropdown without deleting their row
+//               (useful for the Social Media Sales list below, which is info-only for now)
+const EMPLOYEES = [
+  // ---- Social Media team — shift 10:30 to 7:00, Sunday fixed weekly off ----
+  { name: "Piyush",  team: "Social Media", shiftStart: "10:30", weeklyOff: "Sunday" },
+  { name: "Khushi",  team: "Social Media", shiftStart: "10:30", weeklyOff: "Sunday" },
+  { name: "Twisha",  team: "Social Media", shiftStart: "10:30", weeklyOff: "Sunday" },
+  { name: "Avishi",  team: "Social Media", shiftStart: "10:30", weeklyOff: "Sunday" },
+  { name: "Ansh",    team: "Social Media", shiftStart: "10:30", weeklyOff: "Sunday" },
+  { name: "Nihal",   team: "Social Media", shiftStart: "10:30", weeklyOff: "Sunday" },
+  { name: "Akshay",  team: "Social Media", shiftStart: "10:30", weeklyOff: "Sunday" },
+  { name: "Nayan",   team: "Social Media", shiftStart: "10:30", weeklyOff: "Sunday" },
+
+  // ---- Social Media Sales — same shift & week-off as Social Media team ----
+  { name: "Shilpi",  team: "Social Media Sales", shiftStart: "10:30", weeklyOff: "Sunday" },
+  { name: "Vandita", team: "Social Media Sales", shiftStart: "10:30", weeklyOff: "Sunday" },
+  { name: "Zeel",    team: "Social Media Sales", shiftStart: "10:30", weeklyOff: "Sunday" },
+  { name: "Jhinal",  team: "Social Media Sales", shiftStart: "10:30", weeklyOff: "Sunday" },
+
+  // ---- Real Estate team — mixed shifts (9:00 or 10:30), flexible weekly off ----
+  // ⚠️ shiftStart below is a placeholder (09:00 for everyone) — you told us it's
+  // split roughly half-and-half between 9:00 and 10:30. Change each person's
+  // shiftStart to "10:30" wherever that's actually their timing — one word edit each.
+  { name: "Arti Manager", team: "Real Estate", shiftStart: "09:00", weeklyOff: null },
+  { name: "Nisha Mam",    team: "Real Estate", shiftStart: "09:00", weeklyOff: null },
+  { name: "Krutika",      team: "Real Estate", shiftStart: "09:00", weeklyOff: null },
+  { name: "Vaishali",     team: "Real Estate", shiftStart: "09:00", weeklyOff: null },
+  { name: "Anand Sir",    team: "Real Estate", shiftStart: "09:00", weeklyOff: null },
+  { name: "Harsh",        team: "Real Estate", shiftStart: "09:00", weeklyOff: null },
+  { name: "Ashit",        team: "Real Estate", shiftStart: "09:00", weeklyOff: null },
+  { name: "Krunal",       team: "Real Estate", shiftStart: "09:00", weeklyOff: null },
+  { name: "Anirudh",      team: "Real Estate", shiftStart: "09:00", weeklyOff: null }
+  // add more employees here, same format
+];
+const ACTIVE_EMPLOYEES = EMPLOYEES.filter(e => e.active !== false);
+const WEEKDAY_INDEX = { "Sunday":0,"Monday":1,"Tuesday":2,"Wednesday":3,"Thursday":4,"Friday":5,"Saturday":6 };
+
+const HALF_DAY_AFTER = "12:00"; // punch-in after this clock time = marked Half Day, for everyone
+
+// ---- Office geofence ----
+// Coordinates below are for: 301, 3rd Floor, Harvy Complex, Subhash Chowk,
+// Gurukul Rd, Memnagar, Ahmedabad 380052 — looked up from the address you shared.
+// Double check by opening Google Maps at your exact door and comparing.
+const OFFICE_LAT = 23.0529123;
+const OFFICE_LNG = 72.5324525;
+const RADIUS_METERS = 110;    // tight enough to block "punch from home/lift/parking",
+                               // loose enough to allow normal GPS drift on the 3rd floor.
+                               // Raise to 150 if genuine staff get false "too far" errors;
+                               // lower only after testing on-site — GPS indoors can drift 20-50m.
+
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ---------- helpers ----------
+function pad(n){ return n.toString().padStart(2,'0'); }
+function todayStr(){
+  const d = new Date();
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+function fmtTime(iso){
+  if(!iso) return "--";
+  const d = new Date(iso);
+  return d.toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'});
+}
+// Numeric minutes-since-midnight — used for ALL late/half-day comparisons.
+// (Comparing formatted time strings directly breaks for single-digit hours
+// like "9:05 am" vs "10:15", so every threshold check goes through here.)
+function minutesSinceMidnight(dateObj){
+  return dateObj.getHours() * 60 + dateObj.getMinutes();
+}
+function timeStrToMinutes(hhmm){
+  const [h, m] = hhmm.split(':').map(Number);
+  return h * 60 + m;
+}
+function addMinutesToTimeStr(hhmm, addMins){
+  const total = (timeStrToMinutes(hhmm) + addMins + 1440) % 1440;
+  return `${pad(Math.floor(total/60))}:${pad(total%60)}`;
+}
+function getLocation(){
+  return new Promise((resolve)=>{
+    if(!navigator.geolocation){ resolve({lat:null,lng:null,denied:true}); return; }
+    navigator.geolocation.getCurrentPosition(
+      pos => resolve({lat:pos.coords.latitude, lng:pos.coords.longitude, denied:false}),
+      () => resolve({lat:null,lng:null,denied:true}),
+      {timeout:8000, enableHighAccuracy:true}
+    );
+  });
+}
+
+// Distance between two GPS points in meters (Haversine formula)
+function distanceMeters(lat1, lng1, lat2, lng2){
+  const R = 6371000;
+  const toRad = d => d * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function computeDayStatus(punchInIso){
+  if(!punchInIso) return 'Absent';
+  const mins = minutesSinceMidnight(new Date(punchInIso));
+  return mins > timeStrToMinutes(HALF_DAY_AFTER) ? 'Half Day' : 'Present';
+}
+
+function getEmployee(name){
+  return EMPLOYEES.find(e => e.name === name);
+}
+function isLatePunch(punchInIso, employeeName){
+  const emp = getEmployee(employeeName);
+  if(!punchInIso || !emp) return false;
+  const lateThreshold = addMinutesToTimeStr(emp.shiftStart, 15); // 15 min grace on their own shift
+  return minutesSinceMidnight(new Date(punchInIso)) > timeStrToMinutes(lateThreshold);
+}
+function weekdayNameOf(dateStr){ // "YYYY-MM-DD" -> "Sunday" etc, avoids timezone shift
+  const [y,m,d] = dateStr.split('-').map(Number);
+  return new Date(y, m-1, d).toLocaleDateString('en-IN', {weekday:'long'});
+}
+function isAutoWeekOff(employeeName, dateStr){
+  const emp = getEmployee(employeeName);
+  return !!(emp && emp.weeklyOff && weekdayNameOf(dateStr) === emp.weeklyOff);
+}
+
+// ---------- clock ----------
+let lastKnownDate = todayStr();
+
+function tickClock(){
+  const d = new Date();
+  document.getElementById('clock').textContent =
+    d.toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+  document.getElementById('dateLabel').textContent =
+    d.toLocaleDateString('en-IN', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+
+  // Detect midnight rollover so the page never needs a manual refresh
+  const nowDate = todayStr();
+  if(nowDate !== lastKnownDate){
+    lastKnownDate = nowDate;
+    refreshStatus(); // re-check punch status for the new day
+
+    // If admin view is open and looking at "today", roll it forward too
+    const dateFilterEl = document.getElementById('dateFilter');
+    if(document.getElementById('adminBody').style.display === 'block'){
+      dateFilterEl.value = nowDate;
+      loadAdminData(nowDate);
+    }
+  }
+}
+setInterval(tickClock, 1000);
+tickClock();
+
+// ---------- populate dropdown ----------
+const empSelect = document.getElementById('empSelect');
+ACTIVE_EMPLOYEES.forEach(emp=>{
+  const o = document.createElement('option');
+  o.value = emp.name; o.textContent = emp.name;
+  empSelect.appendChild(o);
+});
+
+const btnIn = document.getElementById('btnIn');
+const btnOut = document.getElementById('btnOut');
+const statusPill = document.getElementById('statusPill');
+const msgBox = document.getElementById('msg');
+
+let currentRow = null;
+
+function setStatus(state, text){
+  statusPill.className = 'pill ' + state;
+  statusPill.textContent = text;
+}
+
+async function refreshStatus(){
+  const name = empSelect.value;
+  msgBox.textContent = '';
+  msgBox.className = 'msg';
+  if(!name){
+    btnIn.disabled = true; btnOut.disabled = true;
+    setStatus('wait','Select name');
+    return;
+  }
+  if(isAutoWeekOff(name, todayStr())){
+    btnIn.disabled = true; btnOut.disabled = true;
+    setStatus('done','Week Off — enjoy!');
+    return;
+  }
+  const { data, error } = await sb.from('attendance')
+    .select('*')
+    .eq('employee_name', name)
+    .eq('work_date', todayStr())
+    .maybeSingle();
+
+  if(error){
+    msgBox.textContent = 'Connection error — check Supabase setup.';
+    msgBox.className = 'msg err';
+    btnIn.disabled = true; btnOut.disabled = true;
+    return;
+  }
+
+  currentRow = data;
+  // Employees only ever see a simple status label — no exact times,
+  // no location details. Full detail is only visible in the admin view.
+  if(data && data.day_status === 'Week Off'){
+    btnIn.disabled = true; btnOut.disabled = true;
+    setStatus('done','Week Off');
+  } else if(!data || !data.punch_in){
+    btnIn.disabled = false; btnOut.disabled = true;
+    setStatus('wait','Not marked yet');
+  } else if(data.punch_in && !data.punch_out){
+    btnIn.disabled = true; btnOut.disabled = false;
+    const dayStatus = computeDayStatus(data.punch_in);
+    setStatus(dayStatus === 'Half Day' ? 'late' : 'in', dayStatus);
+  } else {
+    btnIn.disabled = true; btnOut.disabled = true;
+    setStatus('done', 'Day complete');
+  }
+}
+empSelect.addEventListener('change', refreshStatus);
+
+function showStamp(text){
+  const stamp = document.getElementById('stamp');
+  document.getElementById('stampText').textContent = text;
+  stamp.classList.remove('show');
+  void stamp.offsetWidth;
+  stamp.classList.add('show');
+  setTimeout(()=> stamp.classList.remove('show'), 1600);
+}
+
+btnIn.addEventListener('click', async ()=>{
+  const name = empSelect.value;
+  if(!name) return;
+  btnIn.disabled = true;
+  msgBox.textContent = 'Checking your location…';
+  msgBox.className = 'msg';
+  const loc = await getLocation();
+
+  if(loc.denied || loc.lat === null){
+    msgBox.textContent = 'Please allow location access to punch in.';
+    msgBox.className = 'msg err';
+    btnIn.disabled = false;
+    return;
+  }
+
+  const dist = distanceMeters(loc.lat, loc.lng, OFFICE_LAT, OFFICE_LNG);
+  if(dist > RADIUS_METERS){
+    msgBox.textContent = "You're too far from the office to punch in.";
+    msgBox.className = 'msg err';
+    btnIn.disabled = false;
+    return;
+  }
+
+  const nowIso = new Date().toISOString();
+  const dayStatus = computeDayStatus(nowIso);
+
+  const { error } = await sb.from('attendance').insert({
+    employee_name: name,
+    work_date: todayStr(),
+    punch_in: nowIso,
+    in_lat: loc.lat, in_lng: loc.lng,
+    day_status: dayStatus
+  });
+
+  if(error){
+    msgBox.textContent = 'Could not punch in. Try again.';
+    msgBox.className = 'msg err';
+    btnIn.disabled = false;
+  } else {
+    msgBox.textContent = 'Punched in successfully.';
+    msgBox.className = 'msg ok';
+    showStamp('Punched In');
+    refreshStatus();
+  }
+});
+
+btnOut.addEventListener('click', async ()=>{
+  const name = empSelect.value;
+  if(!name || !currentRow) return;
+  btnOut.disabled = true;
+  msgBox.textContent = 'Checking your location…';
+  msgBox.className = 'msg';
+  const loc = await getLocation();
+
+  if(loc.denied || loc.lat === null){
+    msgBox.textContent = 'Please allow location access to punch out.';
+    msgBox.className = 'msg err';
+    btnOut.disabled = false;
+    return;
+  }
+
+  const dist = distanceMeters(loc.lat, loc.lng, OFFICE_LAT, OFFICE_LNG);
+  if(dist > RADIUS_METERS){
+    msgBox.textContent = "You're too far from the office to punch out.";
+    msgBox.className = 'msg err';
+    btnOut.disabled = false;
+    return;
+  }
+
+  const nowIso = new Date().toISOString();
+
+  const { error } = await sb.from('attendance')
+    .update({ punch_out: nowIso, out_lat: loc.lat, out_lng: loc.lng })
+    .eq('id', currentRow.id);
+
+  if(error){
+    msgBox.textContent = 'Could not punch out. Try again.';
+    msgBox.className = 'msg err';
+    btnOut.disabled = false;
+  } else {
+    msgBox.textContent = 'Punched out. See you tomorrow!';
+    msgBox.className = 'msg ok';
+    showStamp('Punched Out');
+    refreshStatus();
+  }
+});
+
+// ---------- admin view ----------
+const kioskWrap = document.getElementById('kioskWrap');
+const adminWrap = document.getElementById('adminWrap');
+document.getElementById('showAdmin').addEventListener('click', ()=>{
+  kioskWrap.classList.add('hide');
+  adminWrap.classList.add('show');
+});
+document.getElementById('backToKiosk').addEventListener('click', ()=>{
+  adminWrap.classList.remove('show');
+  kioskWrap.classList.remove('hide');
+});
+
+document.getElementById('pinSubmit').addEventListener('click', ()=>{
+  const val = document.getElementById('pinInput').value;
+  if(val === ADMIN_PIN){
+    document.getElementById('pinGate').style.display = 'none';
+    document.getElementById('adminBody').style.display = 'block';
+    document.getElementById('dateFilter').value = todayStr();
+    loadAdminData(todayStr());
+    const thisMonth = todayStr().slice(0,7);
+    document.getElementById('monthFilter').value = thisMonth;
+    loadMonthlySummary(thisMonth);
+  } else {
+    document.getElementById('pinMsg').textContent = 'Wrong PIN';
+    document.getElementById('pinMsg').className = 'msg err';
+  }
+});
+
+document.getElementById('dateFilter').addEventListener('change', (e)=>{
+  loadAdminData(e.target.value);
+});
+
+document.getElementById('monthFilter').addEventListener('change', (e)=>{
+  loadMonthlySummary(e.target.value);
+});
+
+const weekOffEmpSelect = document.getElementById('weekOffEmpSelect');
+ACTIVE_EMPLOYEES.forEach(emp=>{
+  const o = document.createElement('option');
+  o.value = emp.name; o.textContent = emp.name;
+  weekOffEmpSelect.appendChild(o);
+});
+
+document.getElementById('markWeekOffBtn').addEventListener('click', async ()=>{
+  const name = weekOffEmpSelect.value;
+  const date = document.getElementById('dateFilter').value;
+  const msg = document.getElementById('weekOffMsg');
+  if(!name || !date) return;
+  msg.textContent = 'Saving…'; msg.className = 'msg';
+
+  const { error } = await sb.from('attendance')
+    .upsert({ employee_name: name, work_date: date, day_status: 'Week Off' },
+             { onConflict: 'employee_name,work_date' });
+
+  if(error){
+    msg.textContent = 'Could not save. Check Supabase unique constraint is set (see SQL comment at top).';
+    msg.className = 'msg err';
+  } else {
+    msg.textContent = `Marked ${name} as Week Off for ${date}.`;
+    msg.className = 'msg ok';
+    loadAdminData(date);
+    loadMonthlySummary(date.slice(0,7));
+  }
+});
+
+async function loadAdminData(date){
+  const wrap = document.getElementById('tblWrap');
+  wrap.innerHTML = '<div class="empty">Loading…</div>';
+  const { data, error } = await sb.from('attendance')
+    .select('*')
+    .eq('work_date', date)
+    .order('punch_in', {ascending:true});
+
+  if(error){
+    wrap.innerHTML = '<div class="empty">Connection error.</div>';
+    return;
+  }
+
+  const presentNames = (data || []).map(r => r.employee_name);
+  const absentEmployees = ACTIVE_EMPLOYEES.filter(e => !presentNames.includes(e.name));
+
+  let rows = (data || []).map(r=>{
+    const late = isLatePunch(r.punch_in, r.employee_name);
+    const dayStatus = r.day_status || computeDayStatus(r.punch_in);
+    let hours = '--';
+    if(r.punch_in && r.punch_out){
+      const diffMs = new Date(r.punch_out) - new Date(r.punch_in);
+      hours = (diffMs/3600000).toFixed(1) + 'h';
+    }
+    const statusColor = dayStatus === 'Week Off' ? 'var(--gold)' : (dayStatus === 'Half Day' ? 'var(--late)' : 'inherit');
+    return `<tr>
+      <td>${r.employee_name}</td>
+      <td style="color:${statusColor}">${dayStatus}</td>
+      <td>${fmtTime(r.punch_in)}${late ? ' <span style="color:var(--late)">•late</span>' : ''}</td>
+      <td>${fmtTime(r.punch_out)}</td>
+      <td>${hours}</td>
+    </tr>`;
+  }).join('');
+
+  rows += absentEmployees.map(e => {
+    const weekOff = isAutoWeekOff(e.name, date);
+    return `<tr>
+      <td>${e.name}</td>
+      <td style="color:${weekOff ? 'var(--gold)' : 'var(--late)'}">${weekOff ? 'Week Off' : 'Absent'}</td>
+      <td>--</td><td>--</td><td>--</td>
+    </tr>`;
+  }).join('');
+
+  if(!rows){
+    wrap.innerHTML = '<div class="empty">No entries for this date.</div>';
+    return;
+  }
+
+  wrap.innerHTML = `<table>
+    <thead><tr><th>Name</th><th>Status</th><th>In</th><th>Out</th><th>Hours</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+// Monthly summary — Present / Half Day / Absent counts per employee,
+// so there's no confusion when calculating salary at month-end.
+async function loadMonthlySummary(monthStr){ // format: YYYY-MM
+  const wrap = document.getElementById('summaryWrap');
+  wrap.innerHTML = '<div class="empty">Loading…</div>';
+
+  const start = `${monthStr}-01`;
+  const [y,m] = monthStr.split('-').map(Number);
+  const lastDay = new Date(y, m, 0).getDate();
+  const end = `${monthStr}-${pad(lastDay)}`;
+
+  const { data, error } = await sb.from('attendance')
+    .select('*')
+    .gte('work_date', start)
+    .lte('work_date', end);
+
+  if(error){
+    wrap.innerHTML = '<div class="empty">Connection error.</div>';
+    return;
+  }
+
+  const totalDaysSoFar = Math.min(lastDay, new Date().getDate());
+  const daysCoveredSoFar = (monthStr === todayStr().slice(0,7)) ? totalDaysSoFar : lastDay;
+  const monthEnd = (monthStr === todayStr().slice(0,7)) ? todayStr() : end;
+
+  let rows = ACTIVE_EMPLOYEES.map(emp=>{
+    const entries = (data || []).filter(r => r.employee_name === emp.name);
+    const present = entries.filter(r => (r.day_status || computeDayStatus(r.punch_in)) === 'Present').length;
+    const half = entries.filter(r => (r.day_status || computeDayStatus(r.punch_in)) === 'Half Day').length;
+    const manualWeekOff = entries.filter(r => r.day_status === 'Week Off').length;
+    const marked = entries.length;
+
+    // Auto weekly-off days (e.g. every Sunday) within the covered range, so they
+    // never wrongly count against attendance/salary.
+    let autoWeekOff = 0;
+    if(emp.weeklyOff){
+      const targetIdx = WEEKDAY_INDEX[emp.weeklyOff];
+      let d = new Date(start);
+      const endD = new Date(monthEnd);
+      while(d <= endD){
+        if(d.getDay() === targetIdx) autoWeekOff++;
+        d.setDate(d.getDate()+1);
+      }
+    }
+
+    const absent = Math.max(0, daysCoveredSoFar - marked - autoWeekOff);
+    const totalWeekOff = manualWeekOff + autoWeekOff;
+    return `<tr>
+      <td>${emp.name}</td>
+      <td>${present}</td>
+      <td>${half}</td>
+      <td>${totalWeekOff}</td>
+      <td>${absent}</td>
+    </tr>`;
+  }).join('');
+
+  wrap.innerHTML = `<table>
+    <thead><tr><th>Name</th><th>Present</th><th>Half Day</th><th>Week Off</th><th>Absent</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+refreshStatus();
+</script>
+</body>
+</html>
