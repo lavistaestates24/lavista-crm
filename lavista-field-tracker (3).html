@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Lavista Field Tracker</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', -apple-system, sans-serif; }
+body { background: #0a0a0f; color: #fff; min-height: 100vh; }
+input, textarea, select, button { font-family: inherit; }
+
+.login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.login-box { background: #111118; border: 1px solid #1e1e2e; border-radius: 16px; padding: 40px; width: 340px; max-width: 100%; box-shadow: 0 25px 50px rgba(0,0,0,0.5); }
+.login-icon { font-size: 40px; text-align: center; margin-bottom: 8px; }
+.login-title { text-align: center; font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+.login-sub { text-align: center; color: #6b7280; font-size: 13px; margin-bottom: 28px; }
+.form-label { color: #9ca3af; font-size: 11px; display: block; margin-bottom: 6px; letter-spacing: 0.5px; text-transform: uppercase; }
+.form-input { width: 100%; background: #1a1a2e; border: 1px solid #2d2d44; border-radius: 8px; padding: 10px 14px; color: #fff; font-size: 14px; outline: none; margin-bottom: 14px; }
+.form-input:focus { border-color: #16a34a; }
+.btn-login { width: 100%; background: linear-gradient(135deg, #16a34a, #15803d); border: none; border-radius: 8px; padding: 12px; color: #fff; font-size: 15px; font-weight: 600; cursor: pointer; }
+.error-box { background: #2d1a1a; border: 1px solid #7f1d1d; border-radius: 8px; padding: 10px 14px; color: #f87171; font-size: 13px; margin-bottom: 14px; display: none; }
+.hint-box { margin-top: 20px; padding: 14px; background: #0f0f1a; border-radius: 8px; border: 1px solid #1e1e2e; font-size: 12px; color: #9ca3af; line-height: 1.8; }
+
+.app { display: none; flex-direction: column; min-height: 100vh; }
+.header { background: #111118; border-bottom: 1px solid #1e1e2e; padding: 16px 20px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.header-brand { font-weight: 800; font-size: 16px; }
+.header-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.avatar { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 11px; flex-shrink: 0; }
+.btn-logout { background: transparent; border: 1px solid #2d2d44; border-radius: 6px; padding: 5px 12px; color: #9ca3af; font-size: 12px; cursor: pointer; }
+.tabs { background: #111118; border-bottom: 1px solid #1e1e2e; padding: 0 20px; display: flex; gap: 4px; overflow-x: auto; }
+.tab-btn { background: transparent; border: none; border-bottom: 2px solid transparent; padding: 12px 16px; color: #6b7280; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.tab-btn.active { color: #4ade80; border-bottom-color: #16a34a; }
+.content { padding: 20px; max-width: 900px; margin: 0 auto; width: 100%; }
+
+.status-card { background: #111118; border-radius: 16px; padding: 24px; margin-bottom: 20px; text-align: center; border: 2px solid #1e1e2e; }
+.status-card.active { border-color: #16a34a; background: linear-gradient(135deg,#0f1c14,#111118); }
+.status-icon { font-size: 48px; margin-bottom: 12px; }
+.status-text { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+.status-sub { color: #6b7280; font-size: 13px; margin-bottom: 20px; }
+.btn-checkin { background: linear-gradient(135deg, #16a34a, #15803d); border: none; border-radius: 12px; padding: 16px 32px; color: #fff; font-size: 16px; font-weight: 700; cursor: pointer; width: 100%; max-width: 280px; }
+.btn-checkout { background: linear-gradient(135deg, #dc2626, #b91c1c); border: none; border-radius: 12px; padding: 16px 32px; color: #fff; font-size: 16px; font-weight: 700; cursor: pointer; width: 100%; max-width: 280px; }
+
+.form-section { background: #111118; border-radius: 14px; padding: 20px; margin-top: 16px; display: none; }
+.form-section.show { display: block; }
+textarea, select.full { width: 100%; background: #1a1a2e; border: 1px solid #2d2d44; border-radius: 8px; padding: 10px 14px; color: #fff; font-size: 14px; outline: none; margin-bottom: 14px; }
+textarea { min-height: 70px; resize: vertical; }
+.location-box { background: #0f1c14; border: 1px solid #16a34a44; border-radius: 8px; padding: 10px 14px; font-size: 12px; color: #4ade80; margin-bottom: 14px; display: none; }
+.location-box.show { display: block; }
+.photo-input-wrap { border: 2px dashed #2d2d44; border-radius: 10px; padding: 20px; text-align: center; margin-bottom: 14px; cursor: pointer; }
+.photo-input-wrap:hover { border-color: #16a34a; }
+.photo-preview { max-width: 100%; border-radius: 8px; margin-top: 10px; display: none; }
+.btn-submit { width: 100%; background: linear-gradient(135deg, #16a34a, #15803d); border: none; border-radius: 10px; padding: 14px; color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; }
+
+.visit-card { background: #111118; border: 1px solid #1e1e2e; border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+.visit-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+.visit-purpose { font-weight: 700; font-size: 14px; flex: 1; }
+.visit-time { font-size: 11px; color: #6b7280; }
+.visit-status { font-size: 10px; padding: 3px 8px; border-radius: 99px; font-weight: 600; }
+.visit-loc { font-size: 12px; color: #9ca3af; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+.visit-photo { max-width: 150px; border-radius: 8px; margin-top: 8px; cursor: pointer; }
+.map-link { color: #4ade80; font-size: 12px; text-decoration: none; }
+.map-link:hover { text-decoration: underline; }
+.duration-badge { background: #1a1a2e; padding: 3px 10px; border-radius: 99px; font-size: 11px; color: #9ca3af; }
+
+.stat-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 20px; }
+.stat-box { background: #111118; border-radius: 10px; padding: 14px; text-align: center; }
+.stat-val { font-size: 22px; font-weight: 800; }
+.stat-lbl { font-size: 11px; color: #6b7280; margin-top: 2px; }
+
+.filter-row { display: flex; gap: 10px; align-items: flex-end; margin-bottom: 16px; flex-wrap: wrap; }
+.date-input, .emp-select { background: #1a1a2e; border: 1px solid #2d2d44; border-radius: 8px; padding: 8px 12px; color: #fff; font-size: 13px; outline: none; }
+.btn-filter { background: linear-gradient(135deg, #16a34a, #15803d); border: none; border-radius: 8px; padding: 8px 16px; color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; }
+.loading { text-align: center; padding: 40px; color: #6b7280; }
+.no-data { text-align: center; padding: 40px; color: #4b5563; }
+.emp-section-title { font-size: 13px; font-weight: 700; color: #4ade80; margin: 20px 0 10px; padding-bottom: 6px; border-bottom: 1px solid #1e1e2e; }
+.live-badge { display: inline-flex; align-items: center; gap: 5px; background: #16a34a22; border: 1px solid #16a34a44; color: #4ade80; font-size: 11px; padding: 3px 10px; border-radius: 99px; }
+.pulse-dot { width: 6px; height: 6px; border-radius: 50%; background: #4ade80; animation: pulse 1.5s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 100; align-items: center; justify-content: center; padding: 20px; }
+.modal-overlay.show { display: flex; }
+.modal-img { max-width: 90vw; max-height: 90vh; border-radius: 8px; }
+</style>
+</head>
+<body>
+
+<div class="login-wrap" id="loginWrap">
+  <div class="login-box">
+    <div class="login-icon">📍</div>
+    <div class="login-title">Lavista Field Tracker</div>
+    <div class="login-sub">Site visits aur meetings ka GPS check-in</div>
+    <div class="error-box" id="errBox">Wrong username or password.</div>
+    <label class="form-label">Username</label>
+    <input class="form-input" id="uInp" placeholder="e.g. vandita" />
+    <label class="form-label">Password</label>
+    <input class="form-input" id="pInp" type="password" placeholder="Enter password" />
+    <button class="btn-login" id="loginBtn">Sign In →</button>
+    <div class="hint-box">
+      📌 Ye app sirf field visits track karta hai. Site visit ya meeting pe jaate time "Check In" daboge, location aur photo capture hoga. Wapas aate time "Check Out" karo.
+    </div>
+  </div>
+</div>
+
+<div class="app" id="appWrap">
+  <div class="header">
+    <span class="header-brand">📍 Lavista Field Tracker</span>
+    <div class="header-right">
+      <div class="avatar" id="hAvatar"></div>
+      <span style="color:#9ca3af;font-size:13px" id="hName"></span>
+      <button class="btn-logout" id="logoutBtn">Logout</button>
+    </div>
+  </div>
+  <div class="tabs" id="tabsRow"></div>
+  <div class="content" id="mainContent"></div>
+</div>
+
+<div class="modal-overlay" id="photoModal" onclick="this.classList.remove('show')">
+  <img class="modal-img" id="modalImg" src="" />
+</div>
+
+<script>
+const SUPABASE_URL='https://dfduzpsnzruzsdjipgww.supabase.co';
+const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZHV6cHNuenJ1enNkamlwZ3d3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyMTA3NTEsImV4cCI6MjA5Nzc4Njc1MX0.5jIgdYKzFGRDZ2wfrn290zkSPumhs1goC1ekhWdO68I';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+
+const USERS=[
+  {id:"admin",name:"Deep Sir",role:"Owner",pass:"deep@2409",isAdmin:true},
+  {id:"vandita",name:"Vandita",role:"Sales Executive",pass:"changeme"},
+  {id:"jinal",name:"Jinal",role:"Sales Executive",pass:"changeme"},
+  {id:"shilpi",name:"Shilpi",role:"Scalixo Sales Executive",pass:"changeme"},
+  {id:"suhanshi",name:"Suhanshi",role:"Scalixo Sales Executive",pass:"changeme"},
+];
+
+let CU=null,TAB="checkin",CURRENT_LOCATION=null,CURRENT_PHOTO=null,ACTIVE_VISIT=null;
+
+function ini(n){return n.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();}
+function escHtml(s){return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+function fmtDateTime(d){return new Date(d).toLocaleString("en-IN",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});}
+function fmtDuration(start,end){
+  const ms=new Date(end)-new Date(start);
+  const mins=Math.floor(ms/60000);
+  const h=Math.floor(mins/60),m=mins%60;
+  return h>0?`${h}h ${m}m`:`${m}m`;
+}
+
+document.getElementById("loginBtn").onclick=doLogin;
+document.getElementById("pInp").onkeydown=e=>{if(e.key==="Enter")doLogin();};
+document.getElementById("logoutBtn").onclick=doLogout;
+
+async function doLogin(){
+  const uid=document.getElementById("uInp").value.trim().toLowerCase();
+  const pwd=document.getElementById("pInp").value;
+  const u=USERS.find(x=>x.id===uid);
+  if(!u){showErr("User not found.");return;}
+  let validPass=u.pass;
+  if(!u.isAdmin){
+    const {data}=await sb.from("field_passwords").select("password").eq("user_id",uid).maybeSingle();
+    if(data&&data.password)validPass=data.password;
+  }
+  if(pwd!==validPass){showErr("Wrong password.");return;}
+  CU=u;
+  document.getElementById("errBox").style.display="none";
+  document.getElementById("loginWrap").style.display="none";
+  document.getElementById("appWrap").style.display="flex";
+  const av=document.getElementById("hAvatar");
+  av.textContent=ini(u.name);
+  av.style.cssText="width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;background:#16a34a33;border:2px solid #16a34a;color:#4ade80;";
+  document.getElementById("hName").textContent=u.name;
+  renderTabs();renderContent();
+}
+
+function showErr(msg){const e=document.getElementById("errBox");e.textContent=msg;e.style.display="block";}
+
+function doLogout(){
+  CU=null;
+  document.getElementById("loginWrap").style.display="flex";
+  document.getElementById("appWrap").style.display="none";
+  document.getElementById("uInp").value="";document.getElementById("pInp").value="";
+}
+
+function renderTabs(){
+  const tabs=CU.isAdmin?[{id:"live",label:"🟢 Live Status"},{id:"history",label:"🗂️ Visit History"},{id:"adminpanel",label:"🔐 Manage Passwords"}]:[{id:"checkin",label:"📍 Check In/Out"},{id:"myhistory",label:"🗂️ My Visits"}];
+  document.getElementById("tabsRow").innerHTML=tabs.map(t=>`<button class="tab-btn${TAB===t.id?" active":""}" onclick="switchTab('${t.id}')">${t.label}</button>`).join("");
+  if(!CU.isAdmin&&TAB!=="checkin"&&TAB!=="myhistory")TAB="checkin";
+  if(CU.isAdmin&&TAB!=="live"&&TAB!=="history"&&TAB!=="adminpanel")TAB="live";
+}
+
+function switchTab(t){TAB=t;renderTabs();renderContent();}
+
+function renderContent(){
+  const c=document.getElementById("mainContent");
+  if(TAB==="checkin"){c.innerHTML='<div class="loading">⏳ Loading...</div>';loadCheckinScreen();}
+  else if(TAB==="myhistory"){c.innerHTML='<div class="loading">⏳ Loading...</div>';loadMyHistory();}
+  else if(TAB==="live"){c.innerHTML='<div class="loading">⏳ Loading...</div>';loadLiveStatus();}
+  else if(TAB==="history"){c.innerHTML=buildAdminHistoryPage();loadAdminHistory();}
+  else if(TAB==="adminpanel"){c.innerHTML='<div class="loading">⏳ Loading...</div>';loadFieldAdminPanel();}
+}
+
+async function loadFieldAdminPanel(){
+  const {data}=await sb.from("field_passwords").select("*");
+  const pm={};if(data)data.forEach(r=>pm[r.user_id]=true);
+  const employees=USERS.filter(u=>!u.isAdmin);
+  document.getElementById("mainContent").innerHTML=`
+  <div class="section-title" style="font-size:17px;font-weight:700;margin-bottom:16px">🔐 Manage Employee Passwords</div>
+  <div class="location-box show" style="background:#0f1c14;border-color:#16a34a44;color:#4ade80;margin-bottom:16px">
+    🔒 Sirf Deep Sir ye passwords set kar sakte hain. Employees khud apna password change nahi kar sakte. Set karne ke baad unhe privately bata do.
+  </div>
+  ${employees.map(u=>`
+  <div class="visit-card">
+    <div class="visit-header"><span class="visit-purpose">${u.name} <span style="color:#6b7280;font-size:11px">(username: ${u.id})</span></span>
+    <span class="visit-status" style="background:${pm[u.id]?'#16a34a22':'#f59e0b22'};color:${pm[u.id]?'#4ade80':'#f59e0b'}">${pm[u.id]?'✓ Set':'⚠️ Default'}</span></div>
+    <input class="form-input" id="fpw_${u.id}" type="text" placeholder="Naya password set karo" style="margin-bottom:8px" />
+    <button class="btn-filter" onclick="setFieldPassword('${u.id}')">💾 Set Password</button>
+    <span id="fpwtag_${u.id}" style="display:none;color:#4ade80;font-size:12px;margin-left:8px">✓ Saved!</span>
+  </div>`).join("")}`;
+}
+
+async function setFieldPassword(userId){
+  const val=document.getElementById(`fpw_${userId}`).value.trim();
+  if(!val){alert("Password khali nahi ho sakta!");return;}
+  const {error}=await sb.from("field_passwords").upsert({user_id:userId,password:val},{onConflict:"user_id"});
+  const tag=document.getElementById(`fpwtag_${userId}`);
+  tag.style.display="inline";
+  tag.style.color=error?"#f87171":"#4ade80";
+  tag.textContent=error?"❌ Error!":"✓ Saved!";
+  if(!error)setTimeout(()=>loadFieldAdminPanel(),1000);
+}
+
+// ═══ EMPLOYEE: CHECK IN / OUT ═══
+async function loadCheckinScreen(){
+  const {data}=await sb.from("field_visits").select("*").eq("employee_id",CU.id).is("checkout_time",null).order("checkin_time",{ascending:false}).limit(1);
+  ACTIVE_VISIT=data&&data.length?data[0]:null;
+
+  if(ACTIVE_VISIT){
+    document.getElementById("mainContent").innerHTML=`
+    <div class="status-card active">
+      <div class="status-icon">📍</div>
+      <div class="status-text">You're checked in</div>
+      <div class="status-sub">${escHtml(ACTIVE_VISIT.purpose)} • since ${fmtDateTime(ACTIVE_VISIT.checkin_time)}</div>
+      <button class="btn-checkout" onclick="startCheckout()">🔴 Check Out</button>
+    </div>
+    <div id="checkoutForm" class="form-section"></div>`;
+  }else{
+    document.getElementById("mainContent").innerHTML=`
+    <div class="status-card">
+      <div class="status-icon">🏠</div>
+      <div class="status-text">Not checked in</div>
+      <div class="status-sub">Site visit ya meeting pe jaate time check-in karo</div>
+      <button class="btn-checkin" onclick="startCheckin()">🟢 Check In</button>
+    </div>
+    <div id="checkinForm" class="form-section"></div>`;
+  }
+}
+
+function startCheckin(){
+  const form=document.getElementById("checkinForm");
+  form.classList.add("show");
+  form.innerHTML=`
+  <label class="form-label">📍 Location</label>
+  <div class="location-box" id="locStatus">📡 Getting your location...</div>
+  <label class="form-label">🎯 Purpose / Where are you going</label>
+  <select class="full" id="purposeType">
+    <option value="Site Visit">Site Visit</option>
+    <option value="Client Meeting">Client Meeting</option>
+    <option value="Builder Meeting">Builder Meeting</option>
+    <option value="Property Visit">Property Visit</option>
+    <option value="Other">Other</option>
+  </select>
+  <textarea id="purposeDetail" placeholder="Details — kis client/builder ke saath, kya kaam..."></textarea>
+  <label class="form-label">📸 Photo Proof (location pe pohonchke lo)</label>
+  <div class="photo-input-wrap" onclick="document.getElementById('photoInput').click()">
+    <div id="photoPrompt">📷 Tap to take/upload photo</div>
+    <img class="photo-preview" id="photoPreview" />
+  </div>
+  <input type="file" id="photoInput" accept="image/*" capture="environment" style="display:none" onchange="handlePhoto(event)" />
+  <button class="btn-submit" onclick="submitCheckin()" id="submitBtn" disabled>📍 Confirm Check In</button>
+  `;
+  getLocation();
+}
+
+function getLocation(){
+  if(!navigator.geolocation){
+    document.getElementById("locStatus").textContent="❌ Location not supported on this device.";
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(pos=>{
+    CURRENT_LOCATION={lat:pos.coords.latitude,lng:pos.coords.longitude};
+    document.getElementById("locStatus").classList.add("show");
+    document.getElementById("locStatus").innerHTML=`✅ Location captured: ${CURRENT_LOCATION.lat.toFixed(5)}, ${CURRENT_LOCATION.lng.toFixed(5)}`;
+    checkFormReady();
+  },err=>{
+    document.getElementById("locStatus").classList.add("show");
+    document.getElementById("locStatus").innerHTML=`❌ Location access denied. Please enable GPS/location permission and try again.`;
+    document.getElementById("locStatus").style.color="#f87171";
+  },{enableHighAccuracy:true,timeout:10000});
+}
+
+function handlePhoto(e){
+  const file=e.target.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    CURRENT_PHOTO=ev.target.result;
+    const preview=document.getElementById("photoPreview");
+    preview.src=CURRENT_PHOTO;
+    preview.style.display="block";
+    document.getElementById("photoPrompt").textContent="✅ Photo captured — tap to retake";
+    checkFormReady();
+  };
+  reader.readAsDataURL(file);
+}
+
+function checkFormReady(){
+  const btn=document.getElementById("submitBtn");
+  if(btn)btn.disabled=!(CURRENT_LOCATION&&CURRENT_PHOTO);
+}
+
+async function submitCheckin(){
+  const type=document.getElementById("purposeType").value;
+  const detail=document.getElementById("purposeDetail").value;
+  const purpose=detail?`${type} — ${detail}`:type;
+  const btn=document.getElementById("submitBtn");
+  btn.disabled=true;btn.textContent="Submitting...";
+
+  const {error}=await sb.from("field_visits").insert({
+    employee_id:CU.id,employee_name:CU.name,
+    purpose,
+    checkin_lat:CURRENT_LOCATION.lat,checkin_lng:CURRENT_LOCATION.lng,
+    checkin_photo:CURRENT_PHOTO,
+    checkin_time:new Date().toISOString()
+  });
+
+  if(error){alert("Error: "+error.message);btn.disabled=false;btn.textContent="📍 Confirm Check In";return;}
+  CURRENT_LOCATION=null;CURRENT_PHOTO=null;
+  loadCheckinScreen();
+}
+
+function startCheckout(){
+  const form=document.getElementById("checkoutForm");
+  form.classList.add("show");
+  form.innerHTML=`
+  <label class="form-label">📍 Confirming checkout location</label>
+  <div class="location-box" id="locStatusOut">📡 Getting your location...</div>
+  <label class="form-label">📝 Visit summary (optional)</label>
+  <textarea id="checkoutNote" placeholder="Kya hua visit me, kaisa raha..."></textarea>
+  <button class="btn-checkout" onclick="submitCheckout()" id="checkoutBtn" disabled>🔴 Confirm Check Out</button>
+  `;
+  navigator.geolocation.getCurrentPosition(pos=>{
+    CURRENT_LOCATION={lat:pos.coords.latitude,lng:pos.coords.longitude};
+    const el=document.getElementById("locStatusOut");
+    el.classList.add("show");
+    el.innerHTML=`✅ Location captured: ${CURRENT_LOCATION.lat.toFixed(5)}, ${CURRENT_LOCATION.lng.toFixed(5)}`;
+    document.getElementById("checkoutBtn").disabled=false;
+  },err=>{
+    const el=document.getElementById("locStatusOut");
+    el.classList.add("show");el.style.color="#f87171";
+    el.innerHTML="❌ Location access denied.";
+  },{enableHighAccuracy:true,timeout:10000});
+}
+
+async function submitCheckout(){
+  const note=document.getElementById("checkoutNote").value;
+  const btn=document.getElementById("checkoutBtn");
+  btn.disabled=true;btn.textContent="Submitting...";
+  const {error}=await sb.from("field_visits").update({
+    checkout_lat:CURRENT_LOCATION?.lat,checkout_lng:CURRENT_LOCATION?.lng,
+    checkout_time:new Date().toISOString(),
+    visit_note:note
+  }).eq("id",ACTIVE_VISIT.id);
+  if(error){alert("Error: "+error.message);btn.disabled=false;return;}
+  CURRENT_LOCATION=null;
+  loadCheckinScreen();
+}
+
+// ═══ EMPLOYEE: MY HISTORY ═══
+async function loadMyHistory(){
+  const {data,error}=await sb.from("field_visits").select("*").eq("employee_id",CU.id).order("checkin_time",{ascending:false}).limit(30);
+  const el=document.getElementById("mainContent");
+  if(error||!data||!data.length){el.innerHTML='<div class="no-data">📭 Koi visit history nahi hai abhi.</div>';return;}
+  el.innerHTML=`<div class="emp-section-title">🗂️ My Recent Visits</div>`+data.map(v=>buildVisitCard(v)).join("");
+}
+
+function buildVisitCard(v){
+  const isActive=!v.checkout_time;
+  const duration=isActive?"🟢 Ongoing":fmtDuration(v.checkin_time,v.checkout_time);
+  const mapLink=`https://www.google.com/maps?q=${v.checkin_lat},${v.checkin_lng}`;
+  return `<div class="visit-card">
+    <div class="visit-header">
+      <span class="visit-purpose">${escHtml(v.purpose)}</span>
+      <span class="visit-status" style="background:${isActive?'#16a34a22':'#1a1a2e'};color:${isActive?'#4ade80':'#9ca3af'}">${isActive?'🟢 Active':'✅ Completed'}</span>
+    </div>
+    <div class="visit-time">🕐 In: ${fmtDateTime(v.checkin_time)} ${v.checkout_time?`• Out: ${fmtDateTime(v.checkout_time)}`:''} • <span class="duration-badge">${duration}</span></div>
+    <div class="visit-loc">📍 <a class="map-link" href="${mapLink}" target="_blank">View check-in location on map →</a></div>
+    ${v.checkout_lat?`<div class="visit-loc">🏁 <a class="map-link" href="https://www.google.com/maps?q=${v.checkout_lat},${v.checkout_lng}" target="_blank">View check-out location →</a></div>`:''}
+    ${v.checkin_photo?`<img class="visit-photo" src="${v.checkin_photo}" onclick="showPhotoModal('${v.checkin_photo}')" />`:''}
+    ${v.visit_note?`<div style="color:#9ca3af;font-size:12px;margin-top:8px">📝 ${escHtml(v.visit_note)}</div>`:''}
+  </div>`;
+}
+
+function showPhotoModal(src){
+  document.getElementById("modalImg").src=src;
+  document.getElementById("photoModal").classList.add("show");
+}
+
+// ═══ ADMIN: LIVE STATUS ═══
+async function loadLiveStatus(){
+  const employees=USERS.filter(u=>!u.isAdmin);
+  const {data}=await sb.from("field_visits").select("*").is("checkout_time",null);
+  const activeMap={};if(data)data.forEach(v=>activeMap[v.employee_id]=v);
+
+  const activeCount=Object.keys(activeMap).length;
+  document.getElementById("mainContent").innerHTML=`
+  <div class="stat-grid">
+    <div class="stat-box"><div class="stat-val" style="color:#4ade80">${activeCount}</div><div class="stat-lbl">Currently Out</div></div>
+    <div class="stat-box"><div class="stat-val" style="color:#6b7280">${employees.length-activeCount}</div><div class="stat-lbl">In Office</div></div>
+    <div class="stat-box"><div class="stat-val" style="color:#a78bfa">${employees.length}</div><div class="stat-lbl">Total Team</div></div>
+  </div>
+  <div class="section-title" style="font-size:16px;font-weight:700;margin-bottom:14px">🟢 Live Field Status</div>
+  ${employees.map(u=>{
+    const v=activeMap[u.id];
+    const mapLink=v?`https://www.google.com/maps?q=${v.checkin_lat},${v.checkin_lng}`:'';
+    return `<div class="visit-card" style="border:1px solid ${v?'#16a34a44':'#1e1e2e'}">
+      <div class="visit-header">
+        <div class="avatar" style="width:32px;height:32px;background:${v?'#16a34a22':'#1a1a2e'};border:2px solid ${v?'#16a34a':'#2d2d44'};color:${v?'#4ade80':'#6b7280'};font-size:12px">${ini(u.name)}</div>
+        <span class="visit-purpose">${u.name}</span>
+        ${v?`<span class="live-badge"><span class="pulse-dot"></span>OUT ON FIELD</span>`:`<span class="visit-status" style="background:#1a1a2e;color:#6b7280">🏠 In Office</span>`}
+      </div>
+      ${v?`
+      <div class="visit-time">🎯 ${escHtml(v.purpose)}</div>
+      <div class="visit-time">🕐 Since ${fmtDateTime(v.checkin_time)} • <span class="duration-badge">${fmtDuration(v.checkin_time,new Date())}</span></div>
+      <div class="visit-loc">📍 <a class="map-link" href="${mapLink}" target="_blank">View live location on map →</a></div>
+      ${v.checkin_photo?`<img class="visit-photo" src="${v.checkin_photo}" onclick="showPhotoModal('${v.checkin_photo}')" />`:''}
+      `:`<div style="color:#4b5563;font-size:12px;font-style:italic">No active check-in right now.</div>`}
+    </div>`;
+  }).join("")}
+  <button class="btn-filter" onclick="loadLiveStatus()" style="margin-top:8px">🔄 Refresh</button>`;
+}
+
+// ═══ ADMIN: HISTORY ═══
+function buildAdminHistoryPage(){
+  const weekAgo=new Date(Date.now()-7*24*60*60*1000).toISOString().split("T")[0];
+  const today=new Date().toISOString().split("T")[0];
+  const employees=USERS.filter(u=>!u.isAdmin);
+  return `<div class="section-title" style="font-size:17px;font-weight:700;margin-bottom:16px">🗂️ Visit History — All Employees</div>
+  <div class="filter-row">
+    <div><label class="form-label">From</label><input type="date" class="date-input" id="fromDate" value="${weekAgo}" /></div>
+    <div><label class="form-label">To</label><input type="date" class="date-input" id="toDate" value="${today}" /></div>
+    <div><label class="form-label">Employee</label><select class="emp-select" id="empFilter"><option value="">All</option>${employees.map(u=>`<option value="${u.id}">${u.name}</option>`).join("")}</select></div>
+    <button class="btn-filter" onclick="loadAdminHistory()">🔍 Search</button>
+  </div>
+  <div id="adminHistoryResults"><div class="loading">⏳ Loading...</div></div>`;
+}
+
+async function loadAdminHistory(){
+  const from=document.getElementById("fromDate")?.value;
+  const to=document.getElementById("toDate")?.value;
+  const emp=document.getElementById("empFilter")?.value;
+  let q=sb.from("field_visits").select("*").order("checkin_time",{ascending:false});
+  if(from)q=q.gte("checkin_time",from+"T00:00:00");
+  if(to)q=q.lte("checkin_time",to+"T23:59:59");
+  if(emp)q=q.eq("employee_id",emp);
+  const {data,error}=await q;
+  const el=document.getElementById("adminHistoryResults");
+  if(error||!data||!data.length){el.innerHTML='<div class="no-data">📭 Koi visits nahi mile.</div>';return;}
+  el.innerHTML=data.map(v=>`<div style="margin-bottom:4px"><div style="color:#4ade80;font-size:12px;font-weight:600;margin-bottom:4px">${v.employee_name}</div>${buildVisitCard(v)}</div>`).join("");
+}
+</script>
+</body>
+</html>
