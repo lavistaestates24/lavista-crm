@@ -272,6 +272,14 @@
         <span class="pill wait" id="statusPill">Select name</span>
       </div>
 
+      <div id="remarksWrap" style="display:none;">
+        <label for="remarksInput" id="remarksLabel">Remark (optional)</label>
+        <input type="text" id="remarksInput" placeholder="e.g. client meeting outside" maxlength="120"
+               style="width:100%; padding:12px; background:var(--brown-2); border:1px solid var(--line);
+                      border-radius:3px; color:var(--cream); font-family:'Trebuchet MS', sans-serif;
+                      font-size:14px; margin-bottom:14px;">
+      </div>
+
       <div class="btns">
         <button class="btn-in" id="btnIn" disabled>Punch In</button>
         <button class="btn-out" id="btnOut" disabled>Punch Out</button>
@@ -317,6 +325,13 @@
         <div id="summaryWrap">
           <div class="empty">Select a month</div>
         </div>
+
+        <div style="height:1px;background:var(--line);margin:24px 0;"></div>
+
+        <label for="empReportSelect">Employee timetable (last 30 days)</label>
+        <select id="empReportSelect"></select>
+        <button class="btn-in" style="width:100%;margin-top:8px;" id="empReportBtn">View Report</button>
+        <div class="tbl-scroll" id="empReportWrap" style="margin-top:12px;"></div>
       </div>
     </div>
   </div>
@@ -344,6 +359,7 @@
      in_lat float8, in_lng float8,
      out_lat float8, out_lng float8,
      day_status text,
+     remarks text,
      created_at timestamptz default now()
    );
    alter table hr_punch_log enable row level security;
@@ -351,6 +367,10 @@
 
    -- needed so admin can mark "Week Off" without creating duplicate rows
    alter table hr_punch_log add constraint hr_punch_log_emp_date_unique unique (employee_name, work_date);
+
+   -- Already created the table before? (you have) Just run this one line instead
+   -- of the whole block above — adds the new remarks column to your existing table:
+   -- alter table hr_punch_log add column if not exists remarks text;
 
    ============================================================ */
 const SUPABASE_URL = "https://dfduzpsnzruzsdjipgww.supabase.co";
@@ -360,6 +380,8 @@ const ADMIN_PIN = "2468"; // change this — only Deep Sir should know this
 // Edit this list to match your team.
 // team        : just a label, used for grouping — doesn't affect logic directly
 // shiftStart  : "HH:MM" (24-hr) — their own office start time. Late = shiftStart + 15 min grace.
+// shiftEnd    : "HH:MM" (24-hr) — their own office end time. Punching out before this
+//               triggers a mandatory "why did you leave early" remark.
 // weeklyOff   : a day name ("Sunday") for FIXED weekly-off teams (auto — no punch needed,
 //               never counted absent). Use null for FLEXIBLE weekly-off teams (Real Estate/Sales)
 //               — Deep Sir marks their week-off manually in the admin view instead.
@@ -367,35 +389,35 @@ const ADMIN_PIN = "2468"; // change this — only Deep Sir should know this
 //               (useful for the Social Media Sales list below, which is info-only for now)
 const EMPLOYEES = [
   // ---- Social Media team — shift 10:30 to 7:00, Sunday fixed weekly off ----
-  { name: "Piyush",  team: "Social Media", shiftStart: "10:30", weeklyOff: "Sunday" },
-  { name: "Khushi",  team: "Social Media", shiftStart: "10:30", weeklyOff: "Sunday" },
-  { name: "Twisha",  team: "Social Media", shiftStart: "10:30", weeklyOff: "Sunday" },
-  { name: "Avishi",  team: "Social Media", shiftStart: "10:30", weeklyOff: "Sunday" },
-  { name: "Ansh",    team: "Social Media", shiftStart: "10:30", weeklyOff: "Sunday" },
-  { name: "Nihal",   team: "Social Media", shiftStart: "10:30", weeklyOff: "Sunday" },
-  { name: "Akshay",  team: "Social Media", shiftStart: "10:30", weeklyOff: "Sunday" },
-  { name: "Nayan",   team: "Social Media", shiftStart: "10:30", weeklyOff: "Sunday" },
-  { name: "Aman",    team: "Social Media", shiftStart: "10:30", weeklyOff: "Sunday" },
+  { name: "Piyush",  team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
+  { name: "Khushi",  team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
+  { name: "Twisha",  team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
+  { name: "Avishi",  team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
+  { name: "Ansh",    team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
+  { name: "Nihal",   team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
+  { name: "Akshay",  team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
+  { name: "Nayan",   team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
+  { name: "Aman",    team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
 
   // ---- Social Media Sales — same shift & week-off as Social Media team ----
-  { name: "Shilpi",  team: "Social Media Sales", shiftStart: "10:30", weeklyOff: "Sunday" },
-  { name: "Vandita", team: "Social Media Sales", shiftStart: "10:30", weeklyOff: "Sunday" },
-  { name: "Zeel",    team: "Social Media Sales", shiftStart: "10:30", weeklyOff: "Sunday" },
-  { name: "Jhinal",  team: "Social Media Sales", shiftStart: "10:30", weeklyOff: "Sunday" },
+  { name: "Shilpi",  team: "Social Media Sales", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
+  { name: "Vandita", team: "Social Media Sales", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
+  { name: "Zeel",    team: "Social Media Sales", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
+  { name: "Jhinal",  team: "Social Media Sales", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
 
   // ---- Real Estate team — mixed shifts (9:00 or 10:30), flexible weekly off ----
-  // ⚠️ shiftStart below is a placeholder (09:00 for everyone) — you told us it's
-  // split roughly half-and-half between 9:00 and 10:30. Change each person's
-  // shiftStart to "10:30" wherever that's actually their timing — one word edit each.
-  { name: "Arti Manager", team: "Real Estate", shiftStart: "09:00", weeklyOff: null },
-  { name: "Nisha Mam",    team: "Real Estate", shiftStart: "09:00", weeklyOff: null },
-  { name: "Krutika",      team: "Real Estate", shiftStart: "09:00", weeklyOff: null },
-  { name: "Vaishali",     team: "Real Estate", shiftStart: "09:00", weeklyOff: null },
-  { name: "Anand Sir",    team: "Real Estate", shiftStart: "09:00", weeklyOff: null },
-  { name: "Harsh",        team: "Real Estate", shiftStart: "09:00", weeklyOff: null },
-  { name: "Ashit",        team: "Real Estate", shiftStart: "09:00", weeklyOff: null },
-  { name: "Krunal",       team: "Real Estate", shiftStart: "09:00", weeklyOff: null },
-  { name: "Anirudh",      team: "Real Estate", shiftStart: "09:00", weeklyOff: null }
+  // ⚠️ shiftStart/shiftEnd below is a placeholder (9:00-6:00 for everyone) — you told
+  // us it's split roughly half-and-half. Wherever someone is actually 10:30-7,
+  // change BOTH shiftStart to "10:30" AND shiftEnd to "19:00" for that person.
+  { name: "Arti Manager", team: "Real Estate", shiftStart: "09:00", shiftEnd: "18:00", weeklyOff: null },
+  { name: "Nisha Mam",    team: "Real Estate", shiftStart: "09:00", shiftEnd: "18:00", weeklyOff: null },
+  { name: "Krutika",      team: "Real Estate", shiftStart: "09:00", shiftEnd: "18:00", weeklyOff: null },
+  { name: "Vaishali",     team: "Real Estate", shiftStart: "09:00", shiftEnd: "18:00", weeklyOff: null },
+  { name: "Anand Sir",    team: "Real Estate", shiftStart: "09:00", shiftEnd: "18:00", weeklyOff: null },
+  { name: "Harsh",        team: "Real Estate", shiftStart: "09:00", shiftEnd: "18:00", weeklyOff: null },
+  { name: "Ashit",        team: "Real Estate", shiftStart: "09:00", shiftEnd: "18:00", weeklyOff: null },
+  { name: "Krunal",       team: "Real Estate", shiftStart: "09:00", shiftEnd: "18:00", weeklyOff: null },
+  { name: "Anirudh",      team: "Real Estate", shiftStart: "09:00", shiftEnd: "18:00", weeklyOff: null }
   // add more employees here, same format
 ];
 const ACTIVE_EMPLOYEES = EMPLOYEES.filter(e => e.active !== false);
@@ -537,6 +559,9 @@ async function refreshStatus(){
   const name = empSelect.value;
   msgBox.textContent = '';
   msgBox.className = 'msg';
+  document.getElementById('remarksInput').value = '';
+  document.getElementById('remarksWrap').style.display = 'none';
+
   if(!name){
     btnIn.disabled = true; btnOut.disabled = true;
     setStatus('wait','Select name');
@@ -573,6 +598,13 @@ async function refreshStatus(){
     btnIn.disabled = true; btnOut.disabled = false;
     const dayStatus = computeDayStatus(data.punch_in);
     setStatus(dayStatus === 'Half Day' ? 'late' : 'in', dayStatus);
+    // Show the remarks box now — required only if they're leaving before shift end
+    document.getElementById('remarksWrap').style.display = 'block';
+    const emp = getEmployee(name);
+    const early = emp && minutesSinceMidnight(new Date()) < timeStrToMinutes(emp.shiftEnd);
+    document.getElementById('remarksLabel').textContent = early
+      ? 'Remark — leaving before shift end, please give a reason'
+      : 'Remark (optional)';
   } else {
     btnIn.disabled = true; btnOut.disabled = true;
     setStatus('done', 'Day complete');
@@ -614,13 +646,15 @@ btnIn.addEventListener('click', async ()=>{
 
   const nowIso = new Date().toISOString();
   const dayStatus = computeDayStatus(nowIso);
+  const remark = document.getElementById('remarksInput').value.trim() || null;
 
   const { error } = await sb.from('hr_punch_log').insert({
     employee_name: name,
     work_date: todayStr(),
     punch_in: nowIso,
     in_lat: loc.lat, in_lng: loc.lng,
-    day_status: dayStatus
+    day_status: dayStatus,
+    remarks: remark
   });
 
   if(error){
@@ -658,10 +692,23 @@ btnOut.addEventListener('click', async ()=>{
     return;
   }
 
+  const emp = getEmployee(name);
   const nowIso = new Date().toISOString();
+  const leavingEarly = emp && minutesSinceMidnight(new Date(nowIso)) < timeStrToMinutes(emp.shiftEnd);
+  const remark = document.getElementById('remarksInput').value.trim();
+
+  if(leavingEarly && !remark){
+    msgBox.textContent = "You're leaving before shift end — please add a quick remark why.";
+    msgBox.className = 'msg err';
+    btnOut.disabled = false;
+    return;
+  }
 
   const { error } = await sb.from('hr_punch_log')
-    .update({ punch_out: nowIso, out_lat: loc.lat, out_lng: loc.lng })
+    .update({
+      punch_out: nowIso, out_lat: loc.lat, out_lng: loc.lng,
+      remarks: remark ? (currentRow.remarks ? currentRow.remarks + ' | ' + remark : remark) : currentRow.remarks
+    })
     .eq('id', currentRow.id);
 
   if(error){
@@ -772,6 +819,7 @@ async function loadAdminData(date){
       <td>${fmtTime(r.punch_in)}${late ? ' <span style="color:var(--late)">•late</span>' : ''}</td>
       <td>${fmtTime(r.punch_out)}</td>
       <td>${hours}</td>
+      <td style="color:rgba(245,241,232,0.6)">${r.remarks || '--'}</td>
     </tr>`;
   }).join('');
 
@@ -780,7 +828,7 @@ async function loadAdminData(date){
     return `<tr>
       <td>${e.name}</td>
       <td style="color:${weekOff ? 'var(--gold)' : 'var(--late)'}">${weekOff ? 'Week Off' : 'Absent'}</td>
-      <td>--</td><td>--</td><td>--</td>
+      <td>--</td><td>--</td><td>--</td><td>--</td>
     </tr>`;
   }).join('');
 
@@ -790,7 +838,7 @@ async function loadAdminData(date){
   }
 
   wrap.innerHTML = `<table>
-    <thead><tr><th>Name</th><th>Status</th><th>In</th><th>Out</th><th>Hours</th></tr></thead>
+    <thead><tr><th>Name</th><th>Status</th><th>In</th><th>Out</th><th>Hours</th><th>Remarks</th></tr></thead>
     <tbody>${rows}</tbody>
   </table>`;
 }
@@ -853,6 +901,84 @@ async function loadMonthlySummary(monthStr){ // format: YYYY-MM
 
   wrap.innerHTML = `<table>
     <thead><tr><th>Name</th><th>Present</th><th>Half Day</th><th>Week Off</th><th>Absent</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+// ---------- Per-employee 30-day timetable (e.g. "show me Piyush's report") ----------
+const empReportSelect = document.getElementById('empReportSelect');
+ACTIVE_EMPLOYEES.forEach(emp=>{
+  const o = document.createElement('option');
+  o.value = emp.name; o.textContent = emp.name;
+  empReportSelect.appendChild(o);
+});
+
+document.getElementById('empReportBtn').addEventListener('click', ()=>{
+  loadEmployeeReport(empReportSelect.value);
+});
+
+async function loadEmployeeReport(name){
+  const wrap = document.getElementById('empReportWrap');
+  if(!name) return;
+  wrap.innerHTML = '<div class="empty">Loading…</div>';
+
+  const endD = new Date();
+  const startD = new Date();
+  startD.setDate(startD.getDate() - 29); // last 30 days including today
+  const startStr = `${startD.getFullYear()}-${pad(startD.getMonth()+1)}-${pad(startD.getDate())}`;
+  const endStr = todayStr();
+
+  const { data, error } = await sb.from('hr_punch_log')
+    .select('*')
+    .eq('employee_name', name)
+    .gte('work_date', startStr)
+    .lte('work_date', endStr);
+
+  if(error){
+    wrap.innerHTML = '<div class="empty">Connection error.</div>';
+    return;
+  }
+
+  const byDate = {};
+  (data || []).forEach(r => byDate[r.work_date] = r);
+
+  let rows = '';
+  let d = new Date(endD); // walk backwards, most recent day first
+  for(let i=0; i<30; i++){
+    const dateStr = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    const r = byDate[dateStr];
+    const dayName = d.toLocaleDateString('en-IN', {weekday:'short'});
+    let status, late = false, hours = '--', remarks = '--';
+
+    if(r && r.day_status === 'Week Off'){
+      status = 'Week Off';
+    } else if(isAutoWeekOff(name, dateStr)){
+      status = 'Week Off';
+    } else if(r && r.punch_in){
+      status = r.day_status || computeDayStatus(r.punch_in);
+      late = isLatePunch(r.punch_in, name);
+      if(r.punch_in && r.punch_out){
+        hours = ((new Date(r.punch_out) - new Date(r.punch_in))/3600000).toFixed(1) + 'h';
+      }
+      remarks = r.remarks || '--';
+    } else {
+      status = 'Absent';
+    }
+
+    const statusColor = status === 'Week Off' ? 'var(--gold)' : (status === 'Half Day' ? 'var(--late)' : (status === 'Absent' ? 'var(--late)' : 'inherit'));
+    rows += `<tr>
+      <td>${dateStr} <span style="color:rgba(245,241,232,0.4)">(${dayName})</span></td>
+      <td style="color:${statusColor}">${status}</td>
+      <td>${r ? fmtTime(r.punch_in) : '--'}${late ? ' <span style="color:var(--late)">•late</span>' : ''}</td>
+      <td>${r ? fmtTime(r.punch_out) : '--'}</td>
+      <td>${hours}</td>
+      <td style="color:rgba(245,241,232,0.6)">${remarks}</td>
+    </tr>`;
+    d.setDate(d.getDate() - 1);
+  }
+
+  wrap.innerHTML = `<table>
+    <thead><tr><th>Date</th><th>Status</th><th>In</th><th>Out</th><th>Hours</th><th>Remarks</th></tr></thead>
     <tbody>${rows}</tbody>
   </table>`;
 }
