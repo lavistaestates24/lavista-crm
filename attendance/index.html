@@ -262,10 +262,27 @@
       <div class="clock" id="clock">--:--:--</div>
       <div class="date" id="dateLabel">-</div>
 
-      <label for="empSelect">Employee</label>
-      <select id="empSelect">
-        <option value="">Select your name</option>
-      </select>
+      <label for="empSelect">Apna naam type karo</label>
+      <input type="text" id="empSelect" autocomplete="off" placeholder="Apna poora naam likho"
+             style="width:100%; padding:14px 12px; background:var(--brown-2); border:1px solid var(--line);
+                    border-radius:3px; color:var(--cream); font-family:'Trebuchet MS', sans-serif;
+                    font-size:15px; margin-bottom:22px;">
+
+      <div id="pinWrap" style="display:none;">
+        <label for="pinCheckInput">Your PIN</label>
+        <input type="password" id="pinCheckInput" maxlength="6" inputmode="numeric" placeholder="••••"
+               style="width:100%; padding:12px; background:var(--brown-2); border:1px solid var(--line);
+                      border-radius:3px; color:var(--cream); font-family:'Trebuchet MS', sans-serif;
+                      font-size:14px; margin-bottom:14px;">
+      </div>
+
+      <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-bottom:22px; margin-top:-8px;">
+        <input type="checkbox" id="fieldDutyCheck" style="width:16px;height:16px;accent-color:var(--gold);">
+        <span style="font-family:'Trebuchet MS', sans-serif; font-size:12.5px; color:rgba(245,241,232,0.6);
+                     text-transform:none; letter-spacing:normal;">
+          Aaj shoot / field duty hai (office nahi aa raha)
+        </span>
+      </label>
 
       <div class="status-row">
         <span class="lab">Today's status</span>
@@ -360,6 +377,7 @@
      out_lat float8, out_lng float8,
      day_status text,
      remarks text,
+     field_duty boolean default false,
      created_at timestamptz default now()
    );
    alter table hr_punch_log enable row level security;
@@ -371,6 +389,9 @@
    -- Already created the table before? (you have) Just run this one line instead
    -- of the whole block above — adds the new remarks column to your existing table:
    -- alter table hr_punch_log add column if not exists remarks text;
+
+   -- And run this one too, for the new field-duty (shoot/outside office) feature:
+   -- alter table hr_punch_log add column if not exists field_duty boolean default false;
 
    ============================================================ */
 const SUPABASE_URL = "https://dfduzpsnzruzsdjipgww.supabase.co";
@@ -385,45 +406,45 @@ const ADMIN_PIN = "2468"; // change this — only Deep Sir should know this
 // weeklyOff   : a day name ("Sunday") for FIXED weekly-off teams (auto — no punch needed,
 //               never counted absent). Use null for FLEXIBLE weekly-off teams (Real Estate/Sales)
 //               — Deep Sir marks their week-off manually in the admin view instead.
+// pin         : a private 4-digit PIN string (e.g. "4821") that this employee must enter
+//               before punching in/out — stops one person punching for another.
+//               Leave null to skip the PIN check for that person (not recommended long-term).
 // active      : set false to hide someone from the punch dropdown without deleting their row
 //               (useful for the Social Media Sales list below, which is info-only for now)
 const EMPLOYEES = [
   // ---- Social Media team — shift 10:30 to 7:00, Sunday fixed weekly off ----
-  { name: "Piyush",  team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
-  { name: "Khushi",  team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
-  { name: "Twisha",  team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
-  { name: "Avishi",  team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
-  { name: "Ansh",    team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
-  { name: "Nihal",   team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
-  { name: "Akshay",  team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
-  { name: "Nayan",   team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
-  { name: "Aman",    team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
-  { name: "Samiksha", team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
+  { name: "Piyush",  team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday", pin: null },
+  { name: "Khushi",  team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday", pin: null },
+  { name: "Twisha",  team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday", pin: null },
+  { name: "Avishi",  team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday", pin: null },
+  { name: "Ansh",    team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday", pin: null },
+  { name: "Nihal",   team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday", pin: null },
+  { name: "Akshay",  team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday", pin: null },
+  { name: "Nayan",   team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday", pin: null },
+  { name: "Aman",    team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday", pin: null },
+  { name: "Samiksha",team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday", pin: null },
 
   // ---- Social Media Sales — same shift & week-off as Social Media team ----
-  { name: "Shilpi",  team: "Social Media Sales", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
-  { name: "Vandita", team: "Social Media Sales", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
-  { name: "Zeel",    team: "Social Media Sales", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
-  { name: "Jhinal",  team: "Social Media Sales", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
-
+  { name: "Shilpi",  team: "Social Media Sales", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday", pin: null },
+  { name: "Vandita", team: "Social Media Sales", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday", pin: null },
+  { name: "Zeel",    team: "Social Media Sales", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday", pin: null },
+  { name: "Jhinal",  team: "Social Media Sales", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday", pin: null },
 
   // ---- Real Estate team — mixed shifts (9:00 or 10:30), flexible weekly off ----
   // ⚠️ shiftStart/shiftEnd below is a placeholder (9:00-6:00 for everyone) — you told
   // us it's split roughly half-and-half. Wherever someone is actually 10:30-7,
   // change BOTH shiftStart to "10:30" AND shiftEnd to "19:00" for that person.
- 
-  { name: "Arti Manager", team: "Real Estate", shiftStart: "09:00", shiftEnd: "18:00", weeklyOff: null },
-  { name: "Nisha ",    team: "Real Estate", shiftStart: "09:00", shiftEnd: "18:00", weeklyOff: null },
-  { name: "Krutika",      team: "Real Estate", shiftStart: "09:00", shiftEnd: "18:00", weeklyOff: null },
-  { name: "Vaishali",     team: "Real Estate", shiftStart: "09:00", shiftEnd: "18:00", weeklyOff: null },
-  { name: "Anand ",    team: "Real Estate", shiftStart: "09:00", shiftEnd: "18:00", weeklyOff: null },
-  { name: "Harsh",        team: "Real Estate", shiftStart: "09:00", shiftEnd: "18:00", weeklyOff: null },
-  { name: "Ashit",        team: "Real Estate", shiftStart: "09:00", shiftEnd: "18:00", weeklyOff: null },
-  { name: "Krunal",       team: "Real Estate", shiftStart: "09:00", shiftEnd: "18:00", weeklyOff: null },
-  { name: "Anirudh",      team: "Real Estate", shiftStart: "09:00", shiftEnd: "18:00", weeklyOff: null },
-  { name: "Divyesh", team: "Real Estate", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: null },
-  { name: "Ajay", team: "Real Estate", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: null },
- 
+  { name: "Arti Manager", team: "Real Estate", shiftStart: "09:00", shiftEnd: "18:00", weeklyOff: null, pin: null },
+  { name: "Nisha Mam",    team: "Real Estate", shiftStart: "09:00", shiftEnd: "18:00", weeklyOff: null, pin: null },
+  { name: "Krutika",      team: "Real Estate", shiftStart: "09:00", shiftEnd: "18:00", weeklyOff: null, pin: null },
+  { name: "Vaishali",     team: "Real Estate", shiftStart: "09:00", shiftEnd: "18:00", weeklyOff: null, pin: null },
+  { name: "Anand Sir",    team: "Real Estate", shiftStart: "09:00", shiftEnd: "18:00", weeklyOff: null, pin: null },
+  { name: "Harsh",        team: "Real Estate", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: null, pin: null },
+  { name: "Ashit",        team: "Real Estate", shiftStart: "09:00", shiftEnd: "18:00", weeklyOff: null, pin: null },
+  { name: "Krunal",       team: "Real Estate", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: null, pin: null },
+  { name: "Anirudh",      team: "Real Estate", shiftStart: "09:00", shiftEnd: "18:00", weeklyOff: null, pin: null },
+  { name: "Divyesh",      team: "Real Estate", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: null, pin: null },
+  { name: "Ajay",         team: "Real Estate", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: null, pin: null }
   // add more employees here, same format
 ];
 const ACTIVE_EMPLOYEES = EMPLOYEES.filter(e => e.active !== false);
@@ -541,13 +562,16 @@ function tickClock(){
 setInterval(tickClock, 1000);
 tickClock();
 
-// ---------- populate dropdown ----------
+// ---------- name input (fully typed — no dropdown, no suggestions) ----------
 const empSelect = document.getElementById('empSelect');
-ACTIVE_EMPLOYEES.forEach(emp=>{
-  const o = document.createElement('option');
-  o.value = emp.name; o.textContent = emp.name;
-  empSelect.appendChild(o);
-});
+// Case/whitespace-tolerant match — "piyush" or " Piyush " both resolve to the
+// real "Piyush" record, but a name that isn't on the roster resolves to nothing.
+function matchTypedName(typed){
+  const clean = typed.trim().toLowerCase();
+  if(!clean) return null;
+  const emp = ACTIVE_EMPLOYEES.find(e => e.name.toLowerCase() === clean);
+  return emp ? emp.name : null;
+}
 
 const btnIn = document.getElementById('btnIn');
 const btnOut = document.getElementById('btnOut');
@@ -562,17 +586,32 @@ function setStatus(state, text){
 }
 
 async function refreshStatus(){
-  const name = empSelect.value;
+  const typed = empSelect.value;
+  const name = matchTypedName(typed);
   msgBox.textContent = '';
   msgBox.className = 'msg';
   document.getElementById('remarksInput').value = '';
   document.getElementById('remarksWrap').style.display = 'none';
+  document.getElementById('pinCheckInput').value = '';
 
-  if(!name){
+  if(!typed.trim()){
     btnIn.disabled = true; btnOut.disabled = true;
-    setStatus('wait','Select name');
+    setStatus('wait','Apna naam type karo');
+    document.getElementById('pinWrap').style.display = 'none';
     return;
   }
+  if(!name){
+    btnIn.disabled = true; btnOut.disabled = true;
+    setStatus('wait','Naam nahi mila');
+    document.getElementById('pinWrap').style.display = 'none';
+    msgBox.textContent = 'Ye naam list me nahi hai — apna poora, sahi naam type karo (jaisa HR ke paas hai).';
+    msgBox.className = 'msg err';
+    return;
+  }
+
+  const nameEmp = getEmployee(name);
+  document.getElementById('pinWrap').style.display = (nameEmp && nameEmp.pin) ? 'block' : 'none';
+
   if(isAutoWeekOff(name, todayStr())){
     btnIn.disabled = true; btnOut.disabled = true;
     setStatus('done','Week Off — enjoy!');
@@ -600,23 +639,42 @@ async function refreshStatus(){
   } else if(!data || !data.punch_in){
     btnIn.disabled = false; btnOut.disabled = true;
     setStatus('wait','Not marked yet');
+    const emp = getEmployee(name);
+    const fieldDuty = document.getElementById('fieldDutyCheck').checked;
+    // Remark box only appears once they're actually past their own shift-start time
+    // (e.g. after 10:30 for Social Media) — never before, as requested.
+    const isLateNow = emp && minutesSinceMidnight(new Date()) > timeStrToMinutes(emp.shiftStart);
+    if(fieldDuty){
+      // Field duty punch-in also needs a remark (which shoot/location), shown upfront
+      document.getElementById('remarksWrap').style.display = 'block';
+      document.getElementById('remarksLabel').textContent = 'Remark — which shoot/location? (required for field duty)';
+    } else if(isLateNow){
+      // Coming in late — e.g. straight from a shoot — let them note why, right at the office
+      document.getElementById('remarksWrap').style.display = 'block';
+      document.getElementById('remarksLabel').textContent = 'Remark — reason for coming in late? e.g. "Shoot 10:30-2, then office" (optional)';
+    }
   } else if(data.punch_in && !data.punch_out){
     btnIn.disabled = true; btnOut.disabled = false;
     const dayStatus = computeDayStatus(data.punch_in);
     setStatus(dayStatus === 'Half Day' ? 'late' : 'in', dayStatus);
-    // Show the remarks box now — required only if they're leaving before shift end
+    // Show the remarks box now — required if leaving before shift end, or if on field duty
     document.getElementById('remarksWrap').style.display = 'block';
     const emp = getEmployee(name);
     const early = emp && minutesSinceMidnight(new Date()) < timeStrToMinutes(emp.shiftEnd);
-    document.getElementById('remarksLabel').textContent = early
-      ? 'Remark — leaving before shift end, please give a reason'
-      : 'Remark (optional)';
+    const fieldDuty = document.getElementById('fieldDutyCheck').checked;
+    document.getElementById('remarksLabel').textContent = fieldDuty
+      ? 'Remark — which shoot/location? (required for field duty)'
+      : (early ? 'Remark — leaving before shift end, please give a reason' : 'Remark (optional)');
   } else {
     btnIn.disabled = true; btnOut.disabled = true;
     setStatus('done', 'Day complete');
   }
 }
-empSelect.addEventListener('change', refreshStatus);
+empSelect.addEventListener('input', ()=>{
+  document.getElementById('fieldDutyCheck').checked = false;
+  refreshStatus();
+});
+document.getElementById('fieldDutyCheck').addEventListener('change', refreshStatus);
 
 function showStamp(text){
   const stamp = document.getElementById('stamp');
@@ -627,9 +685,31 @@ function showStamp(text){
   setTimeout(()=> stamp.classList.remove('show'), 1600);
 }
 
+function verifyPin(name){
+  const emp = getEmployee(name);
+  if(!emp || !emp.pin) return true; // no PIN configured for this person yet — allow through
+  const entered = document.getElementById('pinCheckInput').value.trim();
+  if(entered !== emp.pin){
+    msgBox.textContent = 'Wrong PIN — this stops someone else punching in for you.';
+    msgBox.className = 'msg err';
+    return false;
+  }
+  return true;
+}
+
 btnIn.addEventListener('click', async ()=>{
-  const name = empSelect.value;
+  const name = matchTypedName(empSelect.value);
   if(!name) return;
+  if(!verifyPin(name)) return;
+  const fieldDuty = document.getElementById('fieldDutyCheck').checked;
+  const remark = document.getElementById('remarksInput').value.trim() || null;
+
+  if(fieldDuty && !remark){
+    msgBox.textContent = 'Field duty — please write which shoot/location before punching in.';
+    msgBox.className = 'msg err';
+    return;
+  }
+
   btnIn.disabled = true;
   msgBox.textContent = 'Checking your location…';
   msgBox.className = 'msg';
@@ -642,17 +722,18 @@ btnIn.addEventListener('click', async ()=>{
     return;
   }
 
-  const dist = distanceMeters(loc.lat, loc.lng, OFFICE_LAT, OFFICE_LNG);
-  if(dist > RADIUS_METERS){
-    msgBox.textContent = "You're too far from the office to punch in.";
-    msgBox.className = 'msg err';
-    btnIn.disabled = false;
-    return;
+  if(!fieldDuty){
+    const dist = distanceMeters(loc.lat, loc.lng, OFFICE_LAT, OFFICE_LNG);
+    if(dist > RADIUS_METERS){
+      msgBox.textContent = "You're too far from the office to punch in. If you're on a shoot, tick 'field duty' above.";
+      msgBox.className = 'msg err';
+      btnIn.disabled = false;
+      return;
+    }
   }
 
   const nowIso = new Date().toISOString();
   const dayStatus = computeDayStatus(nowIso);
-  const remark = document.getElementById('remarksInput').value.trim() || null;
 
   const { error } = await sb.from('hr_punch_log').insert({
     employee_name: name,
@@ -660,7 +741,8 @@ btnIn.addEventListener('click', async ()=>{
     punch_in: nowIso,
     in_lat: loc.lat, in_lng: loc.lng,
     day_status: dayStatus,
-    remarks: remark
+    remarks: fieldDuty ? ('[Field] ' + remark) : remark,
+    field_duty: fieldDuty
   });
 
   if(error){
@@ -676,8 +758,11 @@ btnIn.addEventListener('click', async ()=>{
 });
 
 btnOut.addEventListener('click', async ()=>{
-  const name = empSelect.value;
+  const name = matchTypedName(empSelect.value);
   if(!name || !currentRow) return;
+  if(!verifyPin(name)) return;
+  const fieldDuty = currentRow.field_duty || document.getElementById('fieldDutyCheck').checked;
+
   btnOut.disabled = true;
   msgBox.textContent = 'Checking your location…';
   msgBox.className = 'msg';
@@ -690,12 +775,14 @@ btnOut.addEventListener('click', async ()=>{
     return;
   }
 
-  const dist = distanceMeters(loc.lat, loc.lng, OFFICE_LAT, OFFICE_LNG);
-  if(dist > RADIUS_METERS){
-    msgBox.textContent = "You're too far from the office to punch out.";
-    msgBox.className = 'msg err';
-    btnOut.disabled = false;
-    return;
+  if(!fieldDuty){
+    const dist = distanceMeters(loc.lat, loc.lng, OFFICE_LAT, OFFICE_LNG);
+    if(dist > RADIUS_METERS){
+      msgBox.textContent = "You're too far from the office to punch out. If you're on a shoot, tick 'field duty' above.";
+      msgBox.className = 'msg err';
+      btnOut.disabled = false;
+      return;
+    }
   }
 
   const emp = getEmployee(name);
@@ -703,7 +790,7 @@ btnOut.addEventListener('click', async ()=>{
   const leavingEarly = emp && minutesSinceMidnight(new Date(nowIso)) < timeStrToMinutes(emp.shiftEnd);
   const remark = document.getElementById('remarksInput').value.trim();
 
-  if(leavingEarly && !remark){
+  if(leavingEarly && !fieldDuty && !remark){
     msgBox.textContent = "You're leaving before shift end — please add a quick remark why.";
     msgBox.className = 'msg err';
     btnOut.disabled = false;
@@ -820,7 +907,7 @@ async function loadAdminData(date){
     }
     const statusColor = dayStatus === 'Week Off' ? 'var(--gold)' : (dayStatus === 'Half Day' ? 'var(--late)' : 'inherit');
     return `<tr>
-      <td>${r.employee_name}</td>
+      <td>${r.employee_name}${r.field_duty ? ' <span style="color:var(--gold)">📍Field</span>' : ''}</td>
       <td style="color:${statusColor}">${dayStatus}</td>
       <td>${fmtTime(r.punch_in)}${late ? ' <span style="color:var(--late)">•late</span>' : ''}</td>
       <td>${fmtTime(r.punch_out)}</td>
