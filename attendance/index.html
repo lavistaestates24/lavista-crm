@@ -268,12 +268,23 @@
                     border-radius:3px; color:var(--cream); font-family:'Trebuchet MS', sans-serif;
                     font-size:15px; margin-bottom:22px;">
 
-      <div id="pinWrap" style="display:none;">
-        <label for="pinCheckInput">Your PIN</label>
-        <input type="password" id="pinCheckInput" maxlength="6" inputmode="numeric" placeholder="••••"
-               style="width:100%; padding:12px; background:var(--brown-2); border:1px solid var(--line);
-                      border-radius:3px; color:var(--cream); font-family:'Trebuchet MS', sans-serif;
-                      font-size:14px; margin-bottom:14px;">
+      <div id="fpWrap" style="display:none; margin-bottom:14px;">
+        <div id="fpNotRegistered" style="display:none;">
+          <p style="font-family:'Trebuchet MS', sans-serif; font-size:12.5px; color:rgba(245,241,232,0.6); margin:0 0 8px;">
+            Pehli baar hai — is device par apna fingerprint/Face register karo.
+          </p>
+          <button type="button" id="fpRegisterBtn" class="btn-out" style="width:100%;">📱 Register Fingerprint</button>
+        </div>
+        <div id="fpRegistered" style="display:none;">
+          <p style="font-family:'Trebuchet MS', sans-serif; font-size:12.5px; color:rgba(245,241,232,0.6); margin:0;">
+            🔒 Fingerprint/Face verify hoga Punch In/Out dabate hi.
+          </p>
+        </div>
+        <div id="fpUnsupported" style="display:none;">
+          <p style="font-family:'Trebuchet MS', sans-serif; font-size:12.5px; color:var(--late); margin:0;">
+            Ye phone/browser fingerprint verify support nahi karta. Naya browser (Chrome/Safari latest) try karo.
+          </p>
+        </div>
       </div>
 
       <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-bottom:22px; margin-top:-8px;">
@@ -335,6 +346,13 @@
           <div class="msg" id="weekOffMsg"></div>
         </div>
 
+        <div style="margin-top:14px;">
+          <label for="fpResetEmpSelect">Reset fingerprint (naya phone mila / register galat hua)</label>
+          <select id="fpResetEmpSelect"></select>
+          <button class="btn-out" style="width:100%;margin-top:8px;" id="fpResetBtn">Reset Fingerprint</button>
+          <div class="msg" id="fpResetMsg"></div>
+        </div>
+
         <div style="height:1px;background:var(--line);margin:24px 0;"></div>
 
         <label for="monthFilter">Monthly summary (for salary)</label>
@@ -393,6 +411,16 @@
    -- And run this one too, for the new field-duty (shoot/outside office) feature:
    -- alter table hr_punch_log add column if not exists field_duty boolean default false;
 
+   -- New table for fingerprint/Face ID login (replaces the old PIN idea) —
+   -- run this once too:
+   create table if not exists employee_credentials (
+     employee_name text primary key,
+     credential_id text not null,
+     created_at timestamptz default now()
+   );
+   alter table employee_credentials enable row level security;
+   create policy "public read/write" on employee_credentials for all using (true) with check (true);
+
    ============================================================ */
 const SUPABASE_URL = "https://dfduzpsnzruzsdjipgww.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_LA6lqjm2yy7DzCDURwjUjg_dAW1-vki";
@@ -406,45 +434,46 @@ const ADMIN_PIN = "2468"; // change this — only Deep Sir should know this
 // weeklyOff   : a day name ("Sunday") for FIXED weekly-off teams (auto — no punch needed,
 //               never counted absent). Use null for FLEXIBLE weekly-off teams (Real Estate/Sales)
 //               — Deep Sir marks their week-off manually in the admin view instead.
-// pin         : a private 4-digit PIN string (e.g. "4821") that this employee must enter
-//               before punching in/out — stops one person punching for another.
-//               Leave null to skip the PIN check for that person (not recommended long-term).
 // active      : set false to hide someone from the punch dropdown without deleting their row
 //               (useful for the Social Media Sales list below, which is info-only for now)
+//
+// Identity is verified with fingerprint/Face ID (not a PIN) — each employee registers
+// their device once (button appears automatically the first time they type their name),
+// and it's stored in Supabase (table: employee_credentials), not here in the code.
 const EMPLOYEES = [
   // ---- Social Media team — shift 10:30 to 7:00, Sunday fixed weekly off ----
-  { name: "Piyush",  team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday", pin: null },
-  { name: "Khushi",  team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday", pin: null },
-  { name: "Twisha",  team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday", pin: null },
-  { name: "Avishi",  team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday", pin: null },
-  { name: "Ansh",    team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday", pin: null },
-  { name: "Nihal",   team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday", pin: null },
-  { name: "Akshay",  team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday", pin: null },
-  { name: "Nayan",   team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday", pin: null },
-  { name: "Aman",    team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday", pin: null },
-  { name: "Samiksha",team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday", pin: null },
+  { name: "Piyush",  team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
+  { name: "Khushi",  team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
+  { name: "Twisha",  team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
+  { name: "Avishi",  team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
+  { name: "Ansh",    team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
+  { name: "Nihal",   team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
+  { name: "Akshay",  team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
+  { name: "Nayan",   team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
+  { name: "Aman",    team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
+  { name: "Samiksha",team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
 
   // ---- Social Media Sales — same shift & week-off as Social Media team ----
-  { name: "Shilpi",  team: "Social Media Sales", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday", pin: null },
-  { name: "Vandita", team: "Social Media Sales", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday", pin: null },
-  { name: "Zeel",    team: "Social Media Sales", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday", pin: null },
-  { name: "Jhinal",  team: "Social Media Sales", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday", pin: null },
+  { name: "Shilpi",  team: "Social Media Sales", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
+  { name: "Vandita", team: "Social Media Sales", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
+  { name: "Zeel",    team: "Social Media Sales", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
+  { name: "Jhinal",  team: "Social Media Sales", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
 
   // ---- Real Estate team — mixed shifts (9:00 or 10:30), flexible weekly off ----
   // ⚠️ shiftStart/shiftEnd below is a placeholder (9:00-6:00 for everyone) — you told
   // us it's split roughly half-and-half. Wherever someone is actually 10:30-7,
   // change BOTH shiftStart to "10:30" AND shiftEnd to "19:00" for that person.
-  { name: "Arti Manager", team: "Real Estate", shiftStart: "09:00", shiftEnd: "18:00", weeklyOff: null, pin: null },
-  { name: "Nisha Mam",    team: "Real Estate", shiftStart: "09:00", shiftEnd: "18:00", weeklyOff: null, pin: null },
-  { name: "Krutika",      team: "Real Estate", shiftStart: "09:00", shiftEnd: "18:00", weeklyOff: null, pin: null },
-  { name: "Vaishali",     team: "Real Estate", shiftStart: "09:00", shiftEnd: "18:00", weeklyOff: null, pin: null },
-  { name: "Anand Sir",    team: "Real Estate", shiftStart: "09:00", shiftEnd: "18:00", weeklyOff: null, pin: null },
-  { name: "Harsh",        team: "Real Estate", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: null, pin: null },
-  { name: "Ashit",        team: "Real Estate", shiftStart: "09:00", shiftEnd: "18:00", weeklyOff: null, pin: null },
-  { name: "Krunal",       team: "Real Estate", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: null, pin: null },
-  { name: "Anirudh",      team: "Real Estate", shiftStart: "09:00", shiftEnd: "18:00", weeklyOff: null, pin: null },
-  { name: "Divyesh",      team: "Real Estate", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: null, pin: null },
-  { name: "Ajay",         team: "Real Estate", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: null, pin: null }
+  { name: "Arti Manager", team: "Real Estate", shiftStart: "09:00", shiftEnd: "18:00", weeklyOff: null },
+  { name: "Nisha Mam",    team: "Real Estate", shiftStart: "09:00", shiftEnd: "18:00", weeklyOff: null },
+  { name: "Krutika",      team: "Real Estate", shiftStart: "09:00", shiftEnd: "18:00", weeklyOff: null },
+  { name: "Vaishali",     team: "Real Estate", shiftStart: "09:00", shiftEnd: "18:00", weeklyOff: null },
+  { name: "Anand Sir",    team: "Real Estate", shiftStart: "09:00", shiftEnd: "18:00", weeklyOff: null },
+  { name: "Harsh",        team: "Real Estate", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: null },
+  { name: "Ashit",        team: "Real Estate", shiftStart: "09:00", shiftEnd: "18:00", weeklyOff: null },
+  { name: "Krunal",       team: "Real Estate", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: null },
+  { name: "Anirudh",      team: "Real Estate", shiftStart: "09:00", shiftEnd: "18:00", weeklyOff: null },
+  { name: "Divyesh",      team: "Real Estate", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: null },
+  { name: "Ajay",         team: "Real Estate", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: null }
   // add more employees here, same format
 ];
 const ACTIVE_EMPLOYEES = EMPLOYEES.filter(e => e.active !== false);
@@ -573,6 +602,102 @@ function matchTypedName(typed){
   return emp ? emp.name : null;
 }
 
+// ---------- Fingerprint / Face ID (WebAuthn) — replaces PIN ----------
+// Each employee registers their own device's fingerprint/Face once (a "credential").
+// The credential ID is stored in Supabase (table: employee_credentials), keyed by name.
+// On every punch, the browser re-asks the OS-level fingerprint/Face prompt and only
+// returns success if it matches what was registered on THAT device — this can't be
+// typed, guessed, or told to someone else the way a PIN can.
+const webauthnSupported = !!(window.PublicKeyCredential && navigator.credentials);
+let currentCredentialId = null; // credential for whichever name is currently typed
+
+function randomBuffer(len){
+  const b = new Uint8Array(len);
+  crypto.getRandomValues(b);
+  return b;
+}
+function bufToBase64url(buf){
+  const bytes = new Uint8Array(buf);
+  let str = '';
+  for(const b of bytes) str += String.fromCharCode(b);
+  return btoa(str).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+function base64urlToBuf(b64url){
+  const b64 = b64url.replace(/-/g,'+').replace(/_/g,'/');
+  const pad = b64.length % 4 === 0 ? '' : '='.repeat(4 - (b64.length % 4));
+  const str = atob(b64 + pad);
+  const bytes = new Uint8Array(str.length);
+  for(let i=0;i<str.length;i++) bytes[i] = str.charCodeAt(i);
+  return bytes.buffer;
+}
+
+async function registerFingerprint(employeeName){
+  const publicKey = {
+    challenge: randomBuffer(32),
+    rp: { name: "Lavista Attendance", id: location.hostname },
+    user: { id: randomBuffer(16), name: employeeName, displayName: employeeName },
+    pubKeyCredParams: [ {type:"public-key", alg:-7}, {type:"public-key", alg:-257} ],
+    authenticatorSelection: { authenticatorAttachment: "platform", userVerification: "required" },
+    timeout: 60000,
+    attestation: "none"
+  };
+  const cred = await navigator.credentials.create({ publicKey });
+  return cred.id; // base64url string, safe to store as plain text
+}
+
+async function verifyFingerprint(credentialId){
+  const publicKey = {
+    challenge: randomBuffer(32),
+    allowCredentials: [{ type: "public-key", id: base64urlToBuf(credentialId) }],
+    userVerification: "required",
+    timeout: 60000
+  };
+  await navigator.credentials.get({ publicKey }); // throws if it fails/cancels
+  return true;
+}
+
+async function loadCredentialFor(name){
+  if(!name) { currentCredentialId = null; return; }
+  const { data } = await sb.from('employee_credentials')
+    .select('credential_id').eq('employee_name', name).maybeSingle();
+  currentCredentialId = data ? data.credential_id : null;
+}
+
+function updateFingerprintUI(){
+  const fpWrap = document.getElementById('fpWrap');
+  const notReg = document.getElementById('fpNotRegistered');
+  const reg = document.getElementById('fpRegistered');
+  const unsupported = document.getElementById('fpUnsupported');
+  fpWrap.style.display = 'block';
+  if(!webauthnSupported){
+    notReg.style.display = 'none'; reg.style.display = 'none'; unsupported.style.display = 'block';
+  } else if(currentCredentialId){
+    notReg.style.display = 'none'; reg.style.display = 'block'; unsupported.style.display = 'none';
+  } else {
+    notReg.style.display = 'block'; reg.style.display = 'none'; unsupported.style.display = 'none';
+  }
+}
+
+document.getElementById('fpRegisterBtn').addEventListener('click', async ()=>{
+  const name = matchTypedName(empSelect.value);
+  if(!name) return;
+  msgBox.textContent = 'Follow the fingerprint/Face prompt…';
+  msgBox.className = 'msg';
+  try{
+    const credentialId = await registerFingerprint(name);
+    const { error } = await sb.from('employee_credentials')
+      .upsert({ employee_name: name, credential_id: credentialId }, { onConflict: 'employee_name' });
+    if(error) throw error;
+    currentCredentialId = credentialId;
+    updateFingerprintUI();
+    msgBox.textContent = 'Registered! Ab isi device se punch kar sakte ho.';
+    msgBox.className = 'msg ok';
+  } catch(err){
+    msgBox.textContent = 'Registration cancel ho gaya ya fail hua. Dubara try karo.';
+    msgBox.className = 'msg err';
+  }
+});
+
 const btnIn = document.getElementById('btnIn');
 const btnOut = document.getElementById('btnOut');
 const statusPill = document.getElementById('statusPill');
@@ -592,25 +717,26 @@ async function refreshStatus(){
   msgBox.className = 'msg';
   document.getElementById('remarksInput').value = '';
   document.getElementById('remarksWrap').style.display = 'none';
-  document.getElementById('pinCheckInput').value = '';
 
   if(!typed.trim()){
     btnIn.disabled = true; btnOut.disabled = true;
     setStatus('wait','Apna naam type karo');
-    document.getElementById('pinWrap').style.display = 'none';
+    document.getElementById('fpWrap').style.display = 'none';
+    currentCredentialId = null;
     return;
   }
   if(!name){
     btnIn.disabled = true; btnOut.disabled = true;
     setStatus('wait','Naam nahi mila');
-    document.getElementById('pinWrap').style.display = 'none';
+    document.getElementById('fpWrap').style.display = 'none';
+    currentCredentialId = null;
     msgBox.textContent = 'Ye naam list me nahi hai — apna poora, sahi naam type karo (jaisa HR ke paas hai).';
     msgBox.className = 'msg err';
     return;
   }
 
-  const nameEmp = getEmployee(name);
-  document.getElementById('pinWrap').style.display = (nameEmp && nameEmp.pin) ? 'block' : 'none';
+  await loadCredentialFor(name);
+  updateFingerprintUI();
 
   if(isAutoWeekOff(name, todayStr())){
     btnIn.disabled = true; btnOut.disabled = true;
@@ -685,22 +811,33 @@ function showStamp(text){
   setTimeout(()=> stamp.classList.remove('show'), 1600);
 }
 
-function verifyPin(name){
-  const emp = getEmployee(name);
-  if(!emp || !emp.pin) return true; // no PIN configured for this person yet — allow through
-  const entered = document.getElementById('pinCheckInput').value.trim();
-  if(entered !== emp.pin){
-    msgBox.textContent = 'Wrong PIN — this stops someone else punching in for you.';
+async function verifyIdentity(){
+  if(!webauthnSupported){
+    msgBox.textContent = 'Fingerprint check is not supported on this browser — update your browser and try again.';
     msgBox.className = 'msg err';
     return false;
   }
-  return true;
+  if(!currentCredentialId){
+    msgBox.textContent = 'Pehle "Register Fingerprint" button dabao (upar).';
+    msgBox.className = 'msg err';
+    return false;
+  }
+  try{
+    msgBox.textContent = 'Fingerprint/Face verify ho raha hai…';
+    msgBox.className = 'msg';
+    await verifyFingerprint(currentCredentialId);
+    return true;
+  } catch(err){
+    msgBox.textContent = 'Fingerprint match nahi hua ya cancel ho gaya. Dubara try karo.';
+    msgBox.className = 'msg err';
+    return false;
+  }
 }
 
 btnIn.addEventListener('click', async ()=>{
   const name = matchTypedName(empSelect.value);
   if(!name) return;
-  if(!verifyPin(name)) return;
+  if(!(await verifyIdentity())) return;
   const fieldDuty = document.getElementById('fieldDutyCheck').checked;
   const remark = document.getElementById('remarksInput').value.trim() || null;
 
@@ -760,7 +897,7 @@ btnIn.addEventListener('click', async ()=>{
 btnOut.addEventListener('click', async ()=>{
   const name = matchTypedName(empSelect.value);
   if(!name || !currentRow) return;
-  if(!verifyPin(name)) return;
+  if(!(await verifyIdentity())) return;
   const fieldDuty = currentRow.field_duty || document.getElementById('fieldDutyCheck').checked;
 
   btnOut.disabled = true;
@@ -878,6 +1015,30 @@ document.getElementById('markWeekOffBtn').addEventListener('click', async ()=>{
     msg.className = 'msg ok';
     loadAdminData(date);
     loadMonthlySummary(date.slice(0,7));
+  }
+});
+
+const fpResetEmpSelect = document.getElementById('fpResetEmpSelect');
+ACTIVE_EMPLOYEES.forEach(emp=>{
+  const o = document.createElement('option');
+  o.value = emp.name; o.textContent = emp.name;
+  fpResetEmpSelect.appendChild(o);
+});
+
+document.getElementById('fpResetBtn').addEventListener('click', async ()=>{
+  const name = fpResetEmpSelect.value;
+  const msg = document.getElementById('fpResetMsg');
+  if(!name) return;
+  msg.textContent = 'Resetting…'; msg.className = 'msg';
+
+  const { error } = await sb.from('employee_credentials').delete().eq('employee_name', name);
+
+  if(error){
+    msg.textContent = 'Could not reset. Try again.';
+    msg.className = 'msg err';
+  } else {
+    msg.textContent = `${name}'s fingerprint reset — they can register again on their (new) device.`;
+    msg.className = 'msg ok';
   }
 });
 
