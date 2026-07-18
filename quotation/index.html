@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quotation Generator</title>
+<style>
+  :root{
+    --ink:#15130f;
+    --panel:#1c1a15;
+    --line:rgba(201,162,75,0.18);
+    --gold:#C9A24B;
+    --cream:#F5F1E8;
+    --muted:rgba(245,241,232,0.55);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--ink);
+    color:var(--cream);
+    font-family:'Trebuchet MS', 'Segoe UI', sans-serif;
+    min-height:100vh;
+  }
+  .shell{
+    display:grid;
+    grid-template-columns: 380px 1fr;
+    gap:0;
+    min-height:100vh;
+  }
+  @media (max-width: 900px){
+    .shell{ grid-template-columns: 1fr; }
+  }
+
+  /* ---------- FORM PANEL ---------- */
+  .form-panel{
+    background:var(--panel);
+    padding:28px 24px 60px;
+    border-right:1px solid var(--line);
+    overflow-y:auto;
+  }
+  .form-panel h1{
+    font-size:17px;
+    letter-spacing:0.04em;
+    color:var(--gold);
+    margin:0 0 4px;
+  }
+  .form-panel .sub{
+    font-size:12px;
+    color:var(--muted);
+    margin-bottom:24px;
+  }
+  .field{ margin-bottom:16px; }
+  .field label{
+    display:block;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--muted);
+    margin-bottom:6px;
+  }
+  .field input[type=text], .field input[type=number], .field input[type=date], .field textarea, .field select{
+    width:100%;
+    padding:10px 11px;
+    background:#26221b;
+    border:1px solid var(--line);
+    border-radius:4px;
+    color:var(--cream);
+    font-family:inherit;
+    font-size:13.5px;
+  }
+  .field textarea{ resize:vertical; min-height:60px; }
+  .brand-toggle{ display:flex; gap:8px; }
+  .brand-toggle button{
+    flex:1;
+    padding:10px 6px;
+    border-radius:4px;
+    border:1px solid var(--line);
+    background:#26221b;
+    color:var(--muted);
+    font-size:12.5px;
+    cursor:pointer;
+    font-family:inherit;
+  }
+  .brand-toggle button.active{
+    background:var(--gold);
+    color:#1a1a1a;
+    border-color:var(--gold);
+    font-weight:700;
+  }
+  .radio-row, .check-row{
+    display:flex; align-items:center; gap:8px;
+    padding:6px 0;
+    font-size:13px;
+  }
+  .radio-row input, .check-row input{ accent-color:var(--gold); width:15px; height:15px; }
+  .duration-row{ display:flex; gap:8px; }
+  .duration-row label{
+    flex:1; text-align:center; padding:9px 4px;
+    border:1px solid var(--line); border-radius:4px;
+    font-size:13px; cursor:pointer; color:var(--muted);
+    display:block; text-transform:none; letter-spacing:normal;
+  }
+  .duration-row input{ display:none; }
+  .duration-row input:checked + label{ background:var(--gold); color:#1a1a1a; font-weight:700; border-color:var(--gold); }
+  .service-list{ display:flex; flex-direction:column; gap:2px; }
+  .custom-item-row{ display:flex; gap:6px; margin-bottom:8px; }
+  .custom-item-row input:first-child{ flex:2; }
+  .custom-item-row input:last-child{ flex:1; }
+  .custom-item-row button{
+    background:none; border:1px solid var(--line); color:var(--muted);
+    border-radius:4px; cursor:pointer; padding:0 10px; font-size:14px;
+  }
+  .add-item-btn{
+    width:100%; padding:8px; background:none; border:1px dashed var(--line);
+    color:var(--gold); border-radius:4px; cursor:pointer; font-size:12.5px; font-family:inherit;
+    margin-bottom:16px;
+  }
+  .divider{ height:1px; background:var(--line); margin:20px 0; }
+  .print-btn{
+    width:100%; padding:14px; background:var(--gold); color:#1a1a1a;
+    border:none; border-radius:4px; font-weight:700; font-size:14px;
+    cursor:pointer; letter-spacing:0.03em; text-transform:uppercase; margin-top:8px;
+  }
+  .reset-btn{
+    width:100%; padding:10px; background:none; color:var(--muted);
+    border:1px solid var(--line); border-radius:4px; font-size:12.5px;
+    cursor:pointer; margin-top:8px; font-family:inherit;
+  }
+
+  /* ---------- PREVIEW PANEL ---------- */
+  .preview-wrap{ padding:40px; display:flex; justify-content:center; background:#0d0c0a; }
+  .quote-page{
+    width:100%; max-width:780px;
+    background:#fff; color:#1a1a1a;
+    padding:56px 60px;
+    font-family:'Georgia', serif;
+    box-shadow:0 20px 60px rgba(0,0,0,0.5);
+  }
+  .q-header{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:36px; }
+  .q-brand-name{ font-size:26px; font-weight:700; letter-spacing:0.02em; margin:0; }
+  .q-brand-tag{ font-family:'Trebuchet MS',sans-serif; font-size:11px; letter-spacing:0.08em; text-transform:uppercase; margin-top:2px; }
+  .q-meta{ text-align:right; font-family:'Trebuchet MS',sans-serif; font-size:12px; color:#555; }
+  .q-meta div{ margin-bottom:2px; }
+  .q-title{
+    font-family:'Trebuchet MS',sans-serif; font-size:11px; letter-spacing:0.12em;
+    text-transform:uppercase; color:#999; border-bottom:2px solid; padding-bottom:8px; margin-bottom:18px;
+  }
+  .q-row{ display:flex; justify-content:space-between; font-family:'Trebuchet MS',sans-serif; font-size:13px; margin-bottom:26px; }
+  .q-row .lbl{ font-size:10px; text-transform:uppercase; letter-spacing:0.06em; color:#999; margin-bottom:3px; }
+  .q-services{ margin-bottom:26px; }
+  .q-services table{ width:100%; border-collapse:collapse; font-family:'Trebuchet MS',sans-serif; font-size:13px; }
+  .q-services th{
+    text-align:left; font-size:10px; text-transform:uppercase; letter-spacing:0.05em;
+    color:#999; padding:6px 8px; border-bottom:2px solid #ddd;
+  }
+  .q-services td{ padding:9px 8px; border-bottom:1px solid #eee; }
+  .q-pricing{ margin-bottom:26px; font-family:'Trebuchet MS',sans-serif; font-size:13px; }
+  .q-pricing table{ width:100%; border-collapse:collapse; }
+  .q-pricing td{ padding:7px 8px; }
+  .q-pricing tr.total td{ border-top:2px solid #1a1a1a; font-weight:700; font-size:14.5px; padding-top:10px; }
+  .q-pricing td:last-child{ text-align:right; }
+  .q-terms{ font-family:'Trebuchet MS',sans-serif; font-size:11.5px; color:#555; line-height:1.6; margin-bottom:24px; }
+  .q-terms h4{ font-size:10.5px; text-transform:uppercase; letter-spacing:0.06em; color:#333; margin:0 0 6px; }
+  .q-payment{
+    font-family:'Trebuchet MS',sans-serif; font-size:12px; background:#f7f5f0;
+    padding:16px 18px; border-radius:4px; margin-bottom:24px;
+  }
+  .q-payment h4{ font-size:10.5px; text-transform:uppercase; letter-spacing:0.06em; color:#333; margin:0 0 8px; }
+  .q-footer{
+    font-family:'Trebuchet MS',sans-serif; font-size:11px; color:#999;
+    text-align:center; border-top:1px solid #eee; padding-top:16px;
+  }
+
+  @media print{
+    .form-panel{ display:none; }
+    .shell{ display:block; }
+    .preview-wrap{ padding:0; background:#fff; }
+    .quote-page{ box-shadow:none; max-width:100%; }
+    body{ background:#fff; }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- ============ FORM PANEL ============ -->
+  <div class="form-panel">
+    <h1>Quotation Generator</h1>
+    <div class="sub">Details bharo, right side pe ready quotation dikhega — print/PDF le lo.</div>
+
+    <div class="field">
+      <label>Brand</label>
+      <div class="brand-toggle">
+        <button type="button" id="brandLavistaBtn" class="active">Lavista Marketing</button>
+        <button type="button" id="brandScalixoBtn">Scalixo Media</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="clientName">Client / Company Name</label>
+      <input type="text" id="clientName" placeholder="e.g. Swarnim Group">
+    </div>
+
+    <div class="field">
+      <label for="contactPerson">Contact Person (optional)</label>
+      <input type="text" id="contactPerson" placeholder="e.g. Mr. Sharma">
+    </div>
+
+    <div class="field">
+      <label for="partnerName">Prepared By (Partner/Team member)</label>
+      <input type="text" id="partnerName" placeholder="e.g. Piyush">
+    </div>
+
+    <div class="field">
+      <label for="quoteDate">Date</label>
+      <input type="date" id="quoteDate">
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="field">
+      <label>Services Included</label>
+      <div class="service-list">
+        <label class="check-row"><input type="checkbox" class="svc-check" value="Reels Production (short-form video content)"> Reels Production</label>
+        <label class="check-row"><input type="checkbox" class="svc-check" value="Social Media Management (posts, captions, stories)"> Social Media Management</label>
+        <label class="check-row"><input type="checkbox" class="svc-check" value="Paid Ads Management (Meta/Google Ads)"> Paid Ads Management</label>
+        <label class="check-row"><input type="checkbox" class="svc-check" value="Content Calendar & Planning"> Content Calendar & Planning</label>
+        <label class="check-row"><input type="checkbox" class="svc-check" value="Photography / Videography Shoot"> Photography/Videography Shoot</label>
+        <label class="check-row"><input type="checkbox" class="svc-check" value="Property Listing & Content Writing"> Property Listing & Content Writing</label>
+        <label class="check-row"><input type="checkbox" class="svc-check" value="Website / Landing Page"> Website/Landing Page</label>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Custom Line Items (optional)</label>
+      <div id="customItemsWrap"></div>
+      <button type="button" class="add-item-btn" id="addCustomItemBtn">+ Add custom item</button>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="field">
+      <label>Package Duration</label>
+      <div class="duration-row">
+        <input type="radio" name="duration" id="dur4" value="4" checked><label for="dur4">4 months</label>
+        <input type="radio" name="duration" id="dur8" value="8"><label for="dur8">8 months</label>
+        <input type="radio" name="duration" id="dur12" value="12"><label for="dur12">12 months</label>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="monthlyPrice">Monthly Package Price (₹)</label>
+      <input type="number" id="monthlyPrice" placeholder="e.g. 15000">
+    </div>
+
+    <div class="field">
+      <label>GST</label>
+      <label class="radio-row"><input type="radio" name="gst" id="gstYes" value="yes" checked> With GST (18% — CGST 9% + SGST 9%)</label>
+      <label class="radio-row"><input type="radio" name="gst" id="gstNo" value="no"> Without GST</label>
+    </div>
+
+    <div class="field">
+      <label for="notesInput">Extra Notes / Special Terms (optional)</label>
+      <textarea id="notesInput" placeholder="Anything extra to mention on this quotation"></textarea>
+    </div>
+
+    <div class="divider"></div>
+
+    <button type="button" class="print-btn" onclick="window.print()">🖨️ Print / Save as PDF</button>
+    <button type="button" class="reset-btn" id="resetBtn">Reset form</button>
+  </div>
+
+  <!-- ============ PREVIEW PANEL ============ -->
+  <div class="preview-wrap">
+    <div class="quote-page" id="quotePage">
+      <!-- filled by JS -->
+    </div>
+  </div>
+
+</div>
+
+<script>
+const BRANDS = {
+  lavista: {
+    name: "Lavista Marketing Agency",
+    tagline: "Real Estate Marketing, Reimagined",
+    accent: "#8a6a2f",
+    prefix: "LMA"
+  },
+  scalixo: {
+    name: "Scalixo Media",
+    tagline: "360° Digital Marketing Agency",
+    accent: "#1f3a5f",
+    prefix: "SCX"
+  }
+};
+let currentBrand = 'lavista';
+
+document.getElementById('quoteDate').value = new Date().toISOString().slice(0,10);
+
+document.getElementById('brandLavistaBtn').addEventListener('click', ()=>{
+  currentBrand = 'lavista';
+  document.getElementById('brandLavistaBtn').classList.add('active');
+  document.getElementById('brandScalixoBtn').classList.remove('active');
+  renderQuote();
+});
+document.getElementById('brandScalixoBtn').addEventListener('click', ()=>{
+  currentBrand = 'scalixo';
+  document.getElementById('brandScalixoBtn').classList.add('active');
+  document.getElementById('brandLavistaBtn').classList.remove('active');
+  renderQuote();
+});
+
+// Custom line items
+let customItemCount = 0;
+document.getElementById('addCustomItemBtn').addEventListener('click', ()=>{
+  customItemCount++;
+  const id = 'custom_' + customItemCount;
+  const row = document.createElement('div');
+  row.className = 'custom-item-row';
+  row.innerHTML = `
+    <input type="text" placeholder="Item name" class="custom-name" data-id="${id}">
+    <input type="text" placeholder="Detail (optional)" class="custom-detail" data-id="${id}">
+    <button type="button" onclick="this.parentElement.remove(); renderQuote();">✕</button>
+  `;
+  document.getElementById('customItemsWrap').appendChild(row);
+  row.querySelectorAll('input').forEach(inp => inp.addEventListener('input', renderQuote));
+});
+
+// Wire up live re-render on any input change
+document.querySelectorAll('.form-panel input, .form-panel textarea, .form-panel select')
+  .forEach(el => el.addEventListener('input', renderQuote));
+
+document.getElementById('resetBtn').addEventListener('click', ()=>{
+  document.querySelectorAll('.form-panel input[type=text], .form-panel input[type=number], .form-panel textarea')
+    .forEach(el => el.value = '');
+  document.querySelectorAll('.svc-check').forEach(el => el.checked = false);
+  document.getElementById('customItemsWrap').innerHTML = '';
+  document.getElementById('dur4').checked = true;
+  document.getElementById('gstYes').checked = true;
+  document.getElementById('quoteDate').value = new Date().toISOString().slice(0,10);
+  renderQuote();
+});
+
+function fmtMoney(n){
+  return '₹' + n.toLocaleString('en-IN', {maximumFractionDigits:0});
+}
+
+function renderQuote(){
+  const brand = BRANDS[currentBrand];
+  const client = document.getElementById('clientName').value.trim() || '[Client Name]';
+  const contact = document.getElementById('contactPerson').value.trim();
+  const partner = document.getElementById('partnerName').value.trim() || '[Partner Name]';
+  const dateVal = document.getElementById('quoteDate').value;
+  const dateStr = dateVal ? new Date(dateVal).toLocaleDateString('en-IN', {day:'numeric', month:'long', year:'numeric'}) : '';
+  const duration = document.querySelector('input[name=duration]:checked').value;
+  const monthlyPrice = parseFloat(document.getElementById('monthlyPrice').value) || 0;
+  const withGst = document.getElementById('gstYes').checked;
+  const notes = document.getElementById('notesInput').value.trim();
+
+  const services = Array.from(document.querySelectorAll('.svc-check:checked')).map(el => el.value);
+  const customItems = [];
+  document.querySelectorAll('.custom-name').forEach(inp => {
+    const id = inp.dataset.id;
+    const detail = document.querySelector(`.custom-detail[data-id="${id}"]`);
+    if(inp.value.trim()) customItems.push({ name: inp.value.trim(), detail: detail ? detail.value.trim() : '' });
+  });
+
+  const subtotal = monthlyPrice * duration;
+  const cgst = withGst ? subtotal * 0.09 : 0;
+  const sgst = withGst ? subtotal * 0.09 : 0;
+  const grandTotal = subtotal + cgst + sgst;
+
+  const quoteNo = `${brand.prefix}/${dateVal ? dateVal.slice(0,4) : new Date().getFullYear()}/${dateVal ? dateVal.slice(5,7)+dateVal.slice(8,10) : ''}`;
+
+  let serviceRows = services.map(s => `<tr><td>✓ ${s}</td></tr>`).join('');
+  serviceRows += customItems.map(c => `<tr><td>✓ ${c.name}${c.detail ? ' <span style="color:#999">— '+c.detail+'</span>' : ''}</td></tr>`).join('');
+  if(!serviceRows) serviceRows = `<tr><td style="color:#bbb">Select services on the left…</td></tr>`;
+
+  document.getElementById('quotePage').innerHTML = `
+    <div class="q-header">
+      <div>
+        <p class="q-brand-name" style="color:${brand.accent}">${brand.name}</p>
+        <p class="q-brand-tag" style="color:${brand.accent}">${brand.tagline}</p>
+      </div>
+      <div class="q-meta">
+        <div><strong>Quotation No:</strong> ${quoteNo}</div>
+        <div><strong>Date:</strong> ${dateStr}</div>
+      </div>
+    </div>
+
+    <div class="q-title" style="border-color:${brand.accent}">Service Quotation</div>
+
+    <div class="q-row">
+      <div>
+        <div class="lbl">Prepared For</div>
+        <div style="font-size:15px;">${client}${contact ? '<br><span style=\"font-size:12px;color:#777\">Attn: '+contact+'</span>' : ''}</div>
+      </div>
+      <div style="text-align:right;">
+        <div class="lbl">Prepared By</div>
+        <div style="font-size:15px;">${partner}<br>${brand.name}</div>
+      </div>
+    </div>
+
+    <div class="q-services">
+      <table>
+        <thead><tr><th>Services Included</th></tr></thead>
+        <tbody>${serviceRows}</tbody>
+      </table>
+    </div>
+
+    <div class="q-pricing">
+      <table>
+        <tr><td>Package Duration</td><td>${duration} months</td></tr>
+        <tr><td>Monthly Package Fee</td><td>${fmtMoney(monthlyPrice)}</td></tr>
+        <tr><td>Subtotal (${duration} × ${fmtMoney(monthlyPrice)})</td><td>${fmtMoney(subtotal)}</td></tr>
+        ${withGst ? `
+        <tr><td>CGST @ 9%</td><td>${fmtMoney(cgst)}</td></tr>
+        <tr><td>SGST @ 9%</td><td>${fmtMoney(sgst)}</td></tr>
+        ` : `<tr><td colspan="2" style="color:#999; font-size:11.5px;">GST not applicable on this quotation</td></tr>`}
+        <tr class="total"><td>Grand Total</td><td>${fmtMoney(grandTotal)}</td></tr>
+      </table>
+    </div>
+
+    ${notes ? `<div class="q-terms"><h4>Additional Notes</h4><p>${notes.replace(/\n/g,'<br>')}</p></div>` : ''}
+
+    <div class="q-terms">
+      <h4>Terms & Conditions</h4>
+      This quotation is valid for 15 days from the date of issue. 50% advance payment is required to
+      commence work, with the balance payable as per the agreed schedule. Package tenure begins from the
+      date of first payment. Any services beyond the scope listed above will be quoted separately.
+    </div>
+
+    <div class="q-payment">
+      <h4>Payment Details</h4>
+      Bank: HDFC Bank &nbsp;•&nbsp; Account Name: Deep Thakkar &nbsp;•&nbsp; IFSC: HDFC0008137
+    </div>
+
+    <div class="q-footer">
+      ${brand.name} &nbsp;•&nbsp; Ahmedabad, Gujarat &nbsp;•&nbsp; Thank you for considering us
+    </div>
+  `;
+}
+
+renderQuote();
+</script>
+</body>
+</html>
