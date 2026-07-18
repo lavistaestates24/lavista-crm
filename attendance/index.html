@@ -313,6 +313,12 @@
         <button class="btn-out" id="btnOut" disabled>Punch Out</button>
       </div>
       <div class="msg" id="msg"></div>
+
+      <button type="button" id="reminderBtn" style="width:100%; margin-top:14px; padding:11px;
+              background:none; border:1px solid var(--line); color:var(--muted);
+              border-radius:3px; font-family:'Trebuchet MS', sans-serif; font-size:12.5px; cursor:pointer;">
+        🔔 Reminder On karo (jab tak tab khula rahe)
+      </button>
     </div>
     <a class="admin-link" id="showAdmin">Admin view</a>
   </div>
@@ -813,10 +819,15 @@ function showStamp(text){
 
 async function verifyIdentity(){
   if(!webauthnSupported){
-    msgBox.textContent = 'Fingerprint check is not supported on this browser — update your browser and try again.';
+    // Some phones/browsers (esp. in-app browsers like WhatsApp's, or old Android)
+    // don't support this at all. Rather than lock that person out of punching
+    // completely, let it through — but flag it clearly for the admin to see.
+    msgBox.textContent = "This browser doesn't support fingerprint check — punch allowed without it (flagged for admin).";
     msgBox.className = 'msg err';
-    return false;
+    identityUnverifiedFlag = true;
+    return true;
   }
+  identityUnverifiedFlag = false;
   if(!currentCredentialId){
     msgBox.textContent = 'Pehle "Register Fingerprint" button dabao (upar).';
     msgBox.className = 'msg err';
@@ -833,6 +844,7 @@ async function verifyIdentity(){
     return false;
   }
 }
+let identityUnverifiedFlag = false;
 
 btnIn.addEventListener('click', async ()=>{
   const name = matchTypedName(empSelect.value);
@@ -871,6 +883,7 @@ btnIn.addEventListener('click', async ()=>{
 
   const nowIso = new Date().toISOString();
   const dayStatus = computeDayStatus(nowIso);
+  const unverifiedTag = identityUnverifiedFlag ? '[Unverified device] ' : '';
 
   const { error } = await sb.from('hr_punch_log').insert({
     employee_name: name,
@@ -878,7 +891,7 @@ btnIn.addEventListener('click', async ()=>{
     punch_in: nowIso,
     in_lat: loc.lat, in_lng: loc.lng,
     day_status: dayStatus,
-    remarks: fieldDuty ? ('[Field] ' + remark) : remark,
+    remarks: unverifiedTag + (fieldDuty ? ('[Field] ' + remark) : (remark || '')) || null,
     field_duty: fieldDuty
   });
 
@@ -924,7 +937,7 @@ btnOut.addEventListener('click', async ()=>{
 
   const emp = getEmployee(name);
   const nowIso = new Date().toISOString();
-  const leavingEarly = emp && minutesSinceMidnight(new Date(nowIso)) < timeStrToMinutes(emp.shiftEnd);
+  const leavingEarly = emp && minutesSinceMidnight(new Date(nowIso)) < timeStrToMinutes(addMinutesToTimeStr(emp.shiftEnd, -15));
   const remark = document.getElementById('remarksInput').value.trim();
 
   if(leavingEarly && !fieldDuty && !remark){
@@ -934,10 +947,13 @@ btnOut.addEventListener('click', async ()=>{
     return;
   }
 
+  const unverifiedTag = identityUnverifiedFlag ? '[Unverified device-out] ' : '';
+  const combinedRemark = (unverifiedTag + remark).trim() || null;
+
   const { error } = await sb.from('hr_punch_log')
     .update({
       punch_out: nowIso, out_lat: loc.lat, out_lng: loc.lng,
-      remarks: remark ? (currentRow.remarks ? currentRow.remarks + ' | ' + remark : remark) : currentRow.remarks
+      remarks: combinedRemark ? (currentRow.remarks ? currentRow.remarks + ' | ' + combinedRemark : combinedRemark) : currentRow.remarks
     })
     .eq('id', currentRow.id);
 
@@ -1042,6 +1058,12 @@ document.getElementById('fpResetBtn').addEventListener('click', async ()=>{
   }
 });
 
+function mapLink(lat, lng, label){
+  if(lat === null || lat === undefined || lng === null || lng === undefined) return '';
+  return `<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" rel="noopener"
+            style="color:var(--gold); text-decoration:none;">📍${label}</a>`;
+}
+
 async function loadAdminData(date){
   const wrap = document.getElementById('tblWrap');
   wrap.innerHTML = '<div class="empty">Loading…</div>';
@@ -1067,12 +1089,14 @@ async function loadAdminData(date){
       hours = (diffMs/3600000).toFixed(1) + 'h';
     }
     const statusColor = dayStatus === 'Week Off' ? 'var(--gold)' : (dayStatus === 'Half Day' ? 'var(--late)' : 'inherit');
+    const locLinks = [mapLink(r.in_lat, r.in_lng, 'In'), mapLink(r.out_lat, r.out_lng, 'Out')].filter(Boolean).join(' &nbsp; ') || '--';
     return `<tr>
       <td>${r.employee_name}${r.field_duty ? ' <span style="color:var(--gold)">📍Field</span>' : ''}</td>
       <td style="color:${statusColor}">${dayStatus}</td>
       <td>${fmtTime(r.punch_in)}${late ? ' <span style="color:var(--late)">•late</span>' : ''}</td>
       <td>${fmtTime(r.punch_out)}</td>
       <td>${hours}</td>
+      <td>${locLinks}</td>
       <td style="color:rgba(245,241,232,0.6)">${r.remarks || '--'}</td>
     </tr>`;
   }).join('');
@@ -1082,7 +1106,7 @@ async function loadAdminData(date){
     return `<tr>
       <td>${e.name}</td>
       <td style="color:${weekOff ? 'var(--gold)' : 'var(--late)'}">${weekOff ? 'Week Off' : 'Absent'}</td>
-      <td>--</td><td>--</td><td>--</td><td>--</td>
+      <td>--</td><td>--</td><td>--</td><td>--</td><td>--</td>
     </tr>`;
   }).join('');
 
@@ -1092,7 +1116,7 @@ async function loadAdminData(date){
   }
 
   wrap.innerHTML = `<table>
-    <thead><tr><th>Name</th><th>Status</th><th>In</th><th>Out</th><th>Hours</th><th>Remarks</th></tr></thead>
+    <thead><tr><th>Name</th><th>Status</th><th>In</th><th>Out</th><th>Hours</th><th>Location</th><th>Remarks</th></tr></thead>
     <tbody>${rows}</tbody>
   </table>`;
 }
@@ -1220,22 +1244,73 @@ async function loadEmployeeReport(name){
     }
 
     const statusColor = status === 'Week Off' ? 'var(--gold)' : (status === 'Half Day' ? 'var(--late)' : (status === 'Absent' ? 'var(--late)' : 'inherit'));
+    const locLinks = r ? [mapLink(r.in_lat, r.in_lng, 'In'), mapLink(r.out_lat, r.out_lng, 'Out')].filter(Boolean).join(' &nbsp; ') : '';
     rows += `<tr>
       <td>${dateStr} <span style="color:rgba(245,241,232,0.4)">(${dayName})</span></td>
       <td style="color:${statusColor}">${status}</td>
       <td>${r ? fmtTime(r.punch_in) : '--'}${late ? ' <span style="color:var(--late)">•late</span>' : ''}</td>
       <td>${r ? fmtTime(r.punch_out) : '--'}</td>
       <td>${hours}</td>
+      <td>${locLinks || '--'}</td>
       <td style="color:rgba(245,241,232,0.6)">${remarks}</td>
     </tr>`;
     d.setDate(d.getDate() - 1);
   }
 
   wrap.innerHTML = `<table>
-    <thead><tr><th>Date</th><th>Status</th><th>In</th><th>Out</th><th>Hours</th><th>Remarks</th></tr></thead>
+    <thead><tr><th>Date</th><th>Status</th><th>In</th><th>Out</th><th>Hours</th><th>Location</th><th>Remarks</th></tr></thead>
     <tbody>${rows}</tbody>
   </table>`;
 }
+
+// ---------- Punch-in reminder (works while this tab/browser stays open) ----------
+// Honest limitation: phones often kill background browser tabs to save battery,
+// so this can't be 100% guaranteed — pair it with a QR code at the office gate
+// for the reliable version of this fix.
+const reminderBtn = document.getElementById('reminderBtn');
+let reminderInterval = null;
+let reminderFiredToday = null; // date string, so it only pings once per day per person
+
+function reminderKey(name){ return 'lavista_reminder_' + name; }
+
+function startReminderLoop(){
+  if(reminderInterval) clearInterval(reminderInterval);
+  reminderInterval = setInterval(async ()=>{
+    const name = matchTypedName(empSelect.value);
+    if(!name) return;
+    const emp = getEmployee(name);
+    if(!emp) return;
+    const today = todayStr();
+    if(reminderFiredToday === today) return; // already reminded once today
+    if(isAutoWeekOff(name, today)) return;
+
+    const nowMin = minutesSinceMidnight(new Date());
+    if(nowMin < timeStrToMinutes(emp.shiftStart)) return; // not shift time yet
+
+    const { data } = await sb.from('hr_punch_log')
+      .select('punch_in').eq('employee_name', name).eq('work_date', today).maybeSingle();
+    if(data && data.punch_in) return; // already punched in, no need to remind
+
+    new Notification('Lavista Attendance', { body: `${name}, abhi tak punch in nahi kiya — kar lo!` });
+    reminderFiredToday = today;
+  }, 60000); // check every minute
+}
+
+reminderBtn.addEventListener('click', async ()=>{
+  if(!('Notification' in window)){
+    reminderBtn.textContent = '🔕 Ye browser notifications support nahi karta';
+    return;
+  }
+  const perm = await Notification.requestPermission();
+  if(perm === 'granted'){
+    reminderBtn.textContent = '🔔 Reminder ON — is tab ko khula rakho';
+    reminderBtn.style.color = 'var(--gold)';
+    reminderBtn.style.borderColor = 'var(--gold)';
+    startReminderLoop();
+  } else {
+    reminderBtn.textContent = '🔕 Permission nahi mili — phone settings me allow karo';
+  }
+});
 
 refreshStatus();
 </script>
