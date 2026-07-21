@@ -268,6 +268,15 @@
                     border-radius:3px; color:var(--cream); font-family:'Trebuchet MS', sans-serif;
                     font-size:15px; margin-bottom:22px;">
 
+      <div id="pinFallbackWrap" style="display:none; margin-bottom:14px;">
+        <label for="pinCheckInput" style="display:block; font-size:11px; text-transform:uppercase; letter-spacing:0.1em;
+               color:rgba(245,241,232,0.5); margin-bottom:8px;">Your PIN (fingerprint fallback)</label>
+        <input type="password" id="pinCheckInput" maxlength="6" inputmode="numeric" placeholder="••••"
+               style="width:100%; padding:12px; background:var(--brown-2); border:1px solid var(--line);
+                      border-radius:3px; color:var(--cream); font-family:'Trebuchet MS', sans-serif;
+                      font-size:14px;">
+      </div>
+
       <div id="fpWrap" style="display:none; margin-bottom:14px;">
         <div id="fpNotRegistered" style="display:none;">
           <p style="font-family:'Trebuchet MS', sans-serif; font-size:12.5px; color:rgba(245,241,232,0.6); margin:0 0 8px;">
@@ -359,6 +368,20 @@
           <div class="msg" id="fpResetMsg"></div>
         </div>
 
+        <div style="margin-top:14px;">
+          <label for="pinAdminEmpSelect">PIN fallback (fingerprint kharab hone par)</label>
+          <select id="pinAdminEmpSelect"></select>
+          <input type="text" id="pinAdminValue" maxlength="6" inputmode="numeric" placeholder="4-digit PIN daalo"
+                 style="width:100%; padding:12px; background:var(--brown-2); border:1px solid var(--line);
+                        border-radius:3px; color:var(--cream); font-family:'Trebuchet MS', sans-serif;
+                        font-size:14px; margin-top:8px;">
+          <div style="display:flex; gap:8px; margin-top:8px;">
+            <button class="btn-in" style="flex:1;" id="pinSetBtn">Set PIN</button>
+            <button class="btn-out" style="flex:1;" id="pinRemoveBtn">Remove PIN</button>
+          </div>
+          <div class="msg" id="pinAdminMsg"></div>
+        </div>
+
         <div style="height:1px;background:var(--line);margin:24px 0;"></div>
 
         <label for="monthFilter">Monthly summary (for salary)</label>
@@ -427,6 +450,16 @@
    alter table employee_credentials enable row level security;
    create policy "public read/write" on employee_credentials for all using (true) with check (true);
 
+   -- New table so Deep Sir can set a PIN fallback for anyone whose fingerprint
+   -- sensor is broken, directly from the Admin view (no code editing needed):
+   create table if not exists employee_pins (
+     employee_name text primary key,
+     pin text not null,
+     created_at timestamptz default now()
+   );
+   alter table employee_pins enable row level security;
+   create policy "public read/write" on employee_pins for all using (true) with check (true);
+
    ============================================================ */
 const SUPABASE_URL = "https://dfduzpsnzruzsdjipgww.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_LA6lqjm2yy7DzCDURwjUjg_dAW1-vki";
@@ -470,10 +503,10 @@ const EMPLOYEES = [
   // us it's split roughly half-and-half. Wherever someone is actually 10:30-7,
   // change BOTH shiftStart to "10:30" AND shiftEnd to "19:00" for that person.
   { name: "Arti Manager", team: "Real Estate", shiftStart: "09:00", shiftEnd: "18:00", weeklyOff: null },
-  { name: "Nisha",    team: "Real Estate", shiftStart: "09:00", shiftEnd: "18:00", weeklyOff: null },
+  { name: "Nisha Mam",    team: "Real Estate", shiftStart: "09:00", shiftEnd: "18:00", weeklyOff: null },
   { name: "Krutika",      team: "Real Estate", shiftStart: "09:00", shiftEnd: "18:00", weeklyOff: null },
   { name: "Vaishali",     team: "Real Estate", shiftStart: "09:00", shiftEnd: "18:00", weeklyOff: null },
-  { name: "Anand ",    team: "Real Estate", shiftStart: "09:00", shiftEnd: "18:00", weeklyOff: null },
+  { name: "Anand Sir",    team: "Real Estate", shiftStart: "09:00", shiftEnd: "18:00", weeklyOff: null },
   { name: "Harsh",        team: "Real Estate", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: null },
   { name: "Ashit",        team: "Real Estate", shiftStart: "09:00", shiftEnd: "18:00", weeklyOff: null },
   { name: "Krunal",       team: "Real Estate", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: null },
@@ -482,6 +515,8 @@ const EMPLOYEES = [
   { name: "Ajay",         team: "Real Estate", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: null },
   { name: "Devraj",       team: "Real Estate", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: null }
   // add more employees here, same format
+  // PIN fallback (for broken fingerprint sensors) is no longer set here in code —
+  // Deep Sir sets/removes it from the Admin view directly (Supabase table: employee_pins).
 ];
 const ACTIVE_EMPLOYEES = EMPLOYEES.filter(e => e.active !== false);
 const WEEKDAY_INDEX = { "Sunday":0,"Monday":1,"Tuesday":2,"Wednesday":3,"Thursday":4,"Friday":5,"Saturday":6 };
@@ -617,6 +652,7 @@ function matchTypedName(typed){
 // typed, guessed, or told to someone else the way a PIN can.
 const webauthnSupported = !!(window.PublicKeyCredential && navigator.credentials);
 let currentCredentialId = null; // credential for whichever name is currently typed
+let currentPinFallback = null; // set only if Deep Sir configured a PIN fallback for this person
 
 function randomBuffer(len){
   const b = new Uint8Array(len);
@@ -729,6 +765,7 @@ async function refreshStatus(){
     btnIn.disabled = true; btnOut.disabled = true;
     setStatus('wait','Apna naam type karo');
     document.getElementById('fpWrap').style.display = 'none';
+    document.getElementById('pinFallbackWrap').style.display = 'none';
     currentCredentialId = null;
     return;
   }
@@ -736,14 +773,26 @@ async function refreshStatus(){
     btnIn.disabled = true; btnOut.disabled = true;
     setStatus('wait','Naam nahi mila');
     document.getElementById('fpWrap').style.display = 'none';
+    document.getElementById('pinFallbackWrap').style.display = 'none';
     currentCredentialId = null;
     msgBox.textContent = 'Ye naam list me nahi hai — apna poora, sahi naam type karo (jaisa HR ke paas hai).';
     msgBox.className = 'msg err';
     return;
   }
 
-  await loadCredentialFor(name);
-  updateFingerprintUI();
+  document.getElementById('pinCheckInput').value = '';
+  const { data: pinRow } = await sb.from('employee_pins').select('pin').eq('employee_name', name).maybeSingle();
+  currentPinFallback = pinRow ? pinRow.pin : null;
+  if(currentPinFallback){
+    // This person has a PIN fallback configured (broken fingerprint device) —
+    // show the PIN box instead of the fingerprint UI entirely.
+    document.getElementById('pinFallbackWrap').style.display = 'block';
+    document.getElementById('fpWrap').style.display = 'none';
+  } else {
+    document.getElementById('pinFallbackWrap').style.display = 'none';
+    await loadCredentialFor(name);
+    updateFingerprintUI();
+  }
 
   if(isAutoWeekOff(name, todayStr())){
     btnIn.disabled = true; btnOut.disabled = true;
@@ -818,7 +867,19 @@ function showStamp(text){
   setTimeout(()=> stamp.classList.remove('show'), 1600);
 }
 
-async function verifyIdentity(){
+async function verifyIdentity(name){
+  // PIN fallback — ONLY for employees Deep Sir has set a PIN for in the admin view
+  // (broken fingerprint sensor etc). Everyone else always goes through fingerprint.
+  if(currentPinFallback){
+    const entered = document.getElementById('pinCheckInput').value.trim();
+    if(entered !== currentPinFallback){
+      msgBox.textContent = 'Wrong PIN.';
+      msgBox.className = 'msg err';
+      return false;
+    }
+    return true;
+  }
+
   if(!webauthnSupported){
     // Some phones/browsers (esp. in-app browsers like WhatsApp's, or old Android)
     // don't support this at all. Rather than lock that person out of punching
@@ -850,7 +911,7 @@ let identityUnverifiedFlag = false;
 btnIn.addEventListener('click', async ()=>{
   const name = matchTypedName(empSelect.value);
   if(!name) return;
-  if(!(await verifyIdentity())) return;
+  if(!(await verifyIdentity(name))) return;
   const fieldDuty = document.getElementById('fieldDutyCheck').checked;
   const remark = document.getElementById('remarksInput').value.trim() || null;
 
@@ -910,8 +971,40 @@ btnIn.addEventListener('click', async ()=>{
 
 btnOut.addEventListener('click', async ()=>{
   const name = matchTypedName(empSelect.value);
-  if(!name || !currentRow) return;
-  if(!(await verifyIdentity())) return;
+  if(!name){
+    msgBox.textContent = 'Pehle apna naam type karo.';
+    msgBox.className = 'msg err';
+    return;
+  }
+
+  // Defensive re-fetch: if the in-memory record is missing/stale (e.g. phone put
+  // the tab to sleep and JS state reset), pull today's row fresh instead of
+  // silently doing nothing — this was the exact bug behind "punch out shows no
+  // option at all" for some people.
+  if(!currentRow){
+    msgBox.textContent = 'Checking your status…';
+    msgBox.className = 'msg';
+    const { data, error } = await sb.from('hr_punch_log')
+      .select('*').eq('employee_name', name).eq('work_date', todayStr()).maybeSingle();
+    if(error){
+      msgBox.textContent = 'Connection error — try again.';
+      msgBox.className = 'msg err';
+      return;
+    }
+    if(!data || !data.punch_in){
+      msgBox.textContent = "Aapne abhi tak punch in nahi kiya hai — pehle Punch In karo.";
+      msgBox.className = 'msg err';
+      return;
+    }
+    if(data.punch_out){
+      msgBox.textContent = "Aaj ka punch out already ho chuka hai.";
+      msgBox.className = 'msg err';
+      return;
+    }
+    currentRow = data;
+  }
+
+  if(!(await verifyIdentity(name))) return;
   const fieldDuty = currentRow.field_duty || document.getElementById('fieldDutyCheck').checked;
 
   btnOut.disabled = true;
@@ -1055,6 +1148,55 @@ document.getElementById('fpResetBtn').addEventListener('click', async ()=>{
     msg.className = 'msg err';
   } else {
     msg.textContent = `${name}'s fingerprint reset — they can register again on their (new) device.`;
+    msg.className = 'msg ok';
+  }
+});
+
+const pinAdminEmpSelect = document.getElementById('pinAdminEmpSelect');
+ACTIVE_EMPLOYEES.forEach(emp=>{
+  const o = document.createElement('option');
+  o.value = emp.name; o.textContent = emp.name;
+  pinAdminEmpSelect.appendChild(o);
+});
+
+document.getElementById('pinSetBtn').addEventListener('click', async ()=>{
+  const name = pinAdminEmpSelect.value;
+  const pinVal = document.getElementById('pinAdminValue').value.trim();
+  const msg = document.getElementById('pinAdminMsg');
+  if(!name) return;
+  if(!pinVal || pinVal.length < 4){
+    msg.textContent = 'Kam se kam 4 digit ka PIN daalo.';
+    msg.className = 'msg err';
+    return;
+  }
+  msg.textContent = 'Saving…'; msg.className = 'msg';
+
+  const { error } = await sb.from('employee_pins')
+    .upsert({ employee_name: name, pin: pinVal }, { onConflict: 'employee_name' });
+
+  if(error){
+    msg.textContent = 'Could not save. Check Supabase setup (see SQL comment at top).';
+    msg.className = 'msg err';
+  } else {
+    msg.textContent = `${name} ab PIN (${pinVal}) se punch kar sakta hai — fingerprint ki zarurat nahi.`;
+    msg.className = 'msg ok';
+    document.getElementById('pinAdminValue').value = '';
+  }
+});
+
+document.getElementById('pinRemoveBtn').addEventListener('click', async ()=>{
+  const name = pinAdminEmpSelect.value;
+  const msg = document.getElementById('pinAdminMsg');
+  if(!name) return;
+  msg.textContent = 'Removing…'; msg.className = 'msg';
+
+  const { error } = await sb.from('employee_pins').delete().eq('employee_name', name);
+
+  if(error){
+    msg.textContent = 'Could not remove. Try again.';
+    msg.className = 'msg err';
+  } else {
+    msg.textContent = `${name} ab wapas fingerprint/Face ID se punch karega.`;
     msg.className = 'msg ok';
   }
 });
