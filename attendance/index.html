@@ -386,6 +386,7 @@
 
         <label for="monthFilter">Monthly summary (for salary)</label>
         <input type="month" id="monthFilter">
+        <button class="btn-out" style="width:100%;margin-top:8px;" id="summaryCsvBtn">⬇ Download Summary (CSV)</button>
         <div id="summaryWrap">
           <div class="empty">Select a month</div>
         </div>
@@ -1276,9 +1277,38 @@ async function loadAdminData(date){
 
 // Monthly summary — Present / Half Day / Absent counts per employee,
 // so there's no confusion when calculating salary at month-end.
+let lastSummaryRows = [];
+let lastSummaryMonth = '';
+
+document.getElementById('summaryCsvBtn').addEventListener('click', ()=>{
+  if(!lastSummaryRows.length){
+    alert('Pehle ek month select karo, summary load hone do, phir download karo.');
+    return;
+  }
+  const header = ['Name','Team','Present','Half Day','Week Off','Absent','Working Hours'];
+  const csvRows = [header.join(',')];
+  lastSummaryRows.forEach(r=>{
+    const line = [r.name, r.team, r.present, r.half, r.weekOff, r.absent, r.hours]
+      .map(v => `"${(v ?? '').toString().replace(/"/g,'""')}"`).join(',');
+    csvRows.push(line);
+  });
+  const csvContent = csvRows.join('\n');
+  const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Lavista_Attendance_Summary_${lastSummaryMonth}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+});
+
 async function loadMonthlySummary(monthStr){ // format: YYYY-MM
   const wrap = document.getElementById('summaryWrap');
   wrap.innerHTML = '<div class="empty">Loading…</div>';
+  lastSummaryRows = [];
+  lastSummaryMonth = monthStr;
 
   const start = `${monthStr}-01`;
   const [y,m] = monthStr.split('-').map(Number);
@@ -1321,17 +1351,28 @@ async function loadMonthlySummary(monthStr){ // format: YYYY-MM
 
     const absent = Math.max(0, daysCoveredSoFar - marked - autoWeekOff);
     const totalWeekOff = manualWeekOff + autoWeekOff;
+
+    let totalHours = 0;
+    entries.forEach(r=>{
+      if(r.punch_in && r.punch_out){
+        totalHours += (new Date(r.punch_out) - new Date(r.punch_in)) / 3600000;
+      }
+    });
+
+    lastSummaryRows.push({ name: emp.name, team: emp.team, present, half, weekOff: totalWeekOff, absent, hours: totalHours.toFixed(1) });
+
     return `<tr>
       <td>${emp.name}</td>
       <td>${present}</td>
       <td>${half}</td>
       <td>${totalWeekOff}</td>
       <td>${absent}</td>
+      <td>${totalHours.toFixed(1)}h</td>
     </tr>`;
   }).join('');
 
   wrap.innerHTML = `<table>
-    <thead><tr><th>Name</th><th>Present</th><th>Half Day</th><th>Week Off</th><th>Absent</th></tr></thead>
+    <thead><tr><th>Name</th><th>Present</th><th>Half Day</th><th>Week Off</th><th>Absent</th><th>Working Hours</th></tr></thead>
     <tbody>${rows}</tbody>
   </table>`;
 }
