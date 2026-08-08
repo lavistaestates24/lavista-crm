@@ -392,6 +392,16 @@
 
         <div style="height:1px;background:var(--line);margin:24px 0;"></div>
 
+        <label for="fullSheetMonth">Full Attendance Sheet (sabhi employees, ek mahine)</label>
+        <input type="month" id="fullSheetMonth">
+        <div style="display:flex; gap:8px; margin-top:8px;">
+          <button class="btn-in" style="flex:1;" id="fullSheetBtn">View Sheet</button>
+          <button class="btn-out" style="flex:1;" id="fullSheetCsvBtn">⬇ Download Excel (CSV)</button>
+        </div>
+        <div class="tbl-scroll" id="fullSheetWrap" style="margin-top:12px; max-height:600px;"></div>
+
+        <div style="height:1px;background:var(--line);margin:24px 0;"></div>
+
         <label for="empReportSelect">Employee timetable (last 30 days)</label>
         <select id="empReportSelect"></select>
         <button class="btn-in" style="width:100%;margin-top:8px;" id="empReportBtn">View Report</button>
@@ -1324,6 +1334,117 @@ async function loadMonthlySummary(monthStr){ // format: YYYY-MM
     <thead><tr><th>Name</th><th>Present</th><th>Half Day</th><th>Week Off</th><th>Absent</th></tr></thead>
     <tbody>${rows}</tbody>
   </table>`;
+}
+
+// ---------- Full Attendance Sheet — all employees, one month, one table ----------
+const thisMonthStr = todayStr().slice(0,7);
+document.getElementById('fullSheetMonth').value = thisMonthStr;
+let lastFullSheetRows = []; // cached for CSV export
+
+document.getElementById('fullSheetBtn').addEventListener('click', ()=>{
+  loadFullSheet(document.getElementById('fullSheetMonth').value);
+});
+document.getElementById('fullSheetCsvBtn').addEventListener('click', ()=>{
+  downloadFullSheetCsv();
+});
+
+async function loadFullSheet(monthStr){
+  const wrap = document.getElementById('fullSheetWrap');
+  if(!monthStr) return;
+  wrap.innerHTML = '<div class="empty">Loading…</div>';
+
+  const [y, m] = monthStr.split('-').map(Number);
+  const startStr = `${monthStr}-01`;
+  const lastDay = new Date(y, m, 0).getDate();
+  const isCurrentMonth = monthStr === thisMonthStr;
+  const endDayNum = isCurrentMonth ? new Date().getDate() : lastDay;
+  const endStr = `${monthStr}-${pad(endDayNum)}`;
+
+  const { data, error } = await sb.from('hr_punch_log')
+    .select('*').gte('work_date', startStr).lte('work_date', endStr);
+
+  if(error){
+    wrap.innerHTML = '<div class="empty">Connection error.</div>';
+    return;
+  }
+
+  const byKey = {}; // "name|date" -> row
+  (data || []).forEach(r => byKey[r.employee_name + '|' + r.work_date] = r);
+
+  const rows = []; // flat list for both table + CSV
+  ACTIVE_EMPLOYEES.forEach(emp=>{
+    for(let d = 1; d <= endDayNum; d++){
+      const dateStr = `${monthStr}-${pad(d)}`;
+      const r = byKey[emp.name + '|' + dateStr];
+      let status, hours = '', inT = '', outT = '', remarks = '';
+
+      if(r && r.day_status === 'Week Off'){
+        status = 'Week Off';
+      } else if(isAutoWeekOff(emp.name, dateStr)){
+        status = 'Week Off';
+      } else if(r && r.punch_in){
+        status = r.day_status || computeDayStatus(r.punch_in);
+        inT = fmtTime(r.punch_in);
+        outT = r.punch_out ? fmtTime(r.punch_out) : '';
+        if(r.punch_in && r.punch_out) hours = ((new Date(r.punch_out) - new Date(r.punch_in))/3600000).toFixed(1);
+        remarks = r.remarks || '';
+      } else {
+        status = 'Absent';
+      }
+      rows.push({ name: emp.name, team: emp.team, date: dateStr, status, inT, outT, hours, remarks });
+    }
+  });
+
+  lastFullSheetRows = rows;
+
+  if(!rows.length){
+    wrap.innerHTML = '<div class="empty">No data.</div>';
+    return;
+  }
+
+  const tableRows = rows.map(r=>{
+    const statusColor = r.status === 'Week Off' ? 'var(--gold)' : (r.status === 'Half Day' ? 'var(--late)' : (r.status === 'Absent' ? 'var(--late)' : 'inherit'));
+    return `<tr>
+      <td>${r.name}</td>
+      <td>${r.date}</td>
+      <td style="color:${statusColor}">${r.status}</td>
+      <td>${r.inT || '--'}</td>
+      <td>${r.outT || '--'}</td>
+      <td>${r.hours || '--'}</td>
+      <td style="color:rgba(245,241,232,0.6)">${r.remarks || '--'}</td>
+    </tr>`;
+  }).join('');
+
+  wrap.innerHTML = `<table>
+    <thead><tr><th>Name</th><th>Date</th><th>Status</th><th>In</th><th>Out</th><th>Hours</th><th>Remarks</th></tr></thead>
+    <tbody>${tableRows}</tbody>
+  </table>`;
+}
+
+function downloadFullSheetCsv(){
+  if(!lastFullSheetRows.length){
+    alert('Pehle "View Sheet" dabao, uske baad download karo.');
+    return;
+  }
+  const monthStr = document.getElementById('fullSheetMonth').value;
+  const header = ['Name','Team','Date','Status','In Time','Out Time','Hours','Remarks'];
+  const csvRows = [header.join(',')];
+  lastFullSheetRows.forEach(r=>{
+    const line = [r.name, r.team, r.date, r.status, r.inT, r.outT, r.hours,
+      (r.remarks || '').replace(/,/g, ';').replace(/\n/g, ' ')]
+      .map(v => `"${(v ?? '').toString().replace(/"/g,'""')}"`).join(',');
+    csvRows.push(line);
+  });
+  const csvContent = csvRows.join('\n');
+  const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Lavista_Attendance_${monthStr}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 // ---------- Per-employee 30-day timetable (e.g. "show me Piyush's report") ----------
