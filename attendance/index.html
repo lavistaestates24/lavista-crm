@@ -262,8 +262,8 @@
       <div class="clock" id="clock">--:--:--</div>
       <div class="date" id="dateLabel">-</div>
 
-      <label for="empSelect">Apna naam type karo</label>
-      <input type="text" id="empSelect" autocomplete="off" placeholder="Apna poora naam likho"
+      <label for="empSelect">Type your name</label>
+      <input type="text" id="empSelect" autocomplete="off" placeholder="Type your full name"
              style="width:100%; padding:14px 12px; background:var(--brown-2); border:1px solid var(--line);
                     border-radius:3px; color:var(--cream); font-family:'Trebuchet MS', sans-serif;
                     font-size:15px; margin-bottom:22px;">
@@ -280,18 +280,18 @@
       <div id="fpWrap" style="display:none; margin-bottom:14px;">
         <div id="fpNotRegistered" style="display:none;">
           <p style="font-family:'Trebuchet MS', sans-serif; font-size:12.5px; color:rgba(245,241,232,0.6); margin:0 0 8px;">
-            Pehli baar hai — is device par apna fingerprint/Face register karo.
+            First time here — register your fingerprint/Face on this device.
           </p>
           <button type="button" id="fpRegisterBtn" class="btn-out" style="width:100%;">📱 Register Fingerprint</button>
         </div>
         <div id="fpRegistered" style="display:none;">
           <p style="font-family:'Trebuchet MS', sans-serif; font-size:12.5px; color:rgba(245,241,232,0.6); margin:0;">
-            🔒 Fingerprint/Face verify hoga Punch In/Out dabate hi.
+            🔒 Fingerprint/Face will be verified as soon as you press Punch In/Out.
           </p>
         </div>
         <div id="fpUnsupported" style="display:none;">
           <p style="font-family:'Trebuchet MS', sans-serif; font-size:12.5px; color:var(--late); margin:0;">
-            Ye phone/browser fingerprint verify support nahi karta. Naya browser (Chrome/Safari latest) try karo.
+            This phone/browser doesn't support fingerprint verification. Try a newer browser (latest Chrome/Safari).
           </p>
         </div>
       </div>
@@ -300,7 +300,7 @@
         <input type="checkbox" id="fieldDutyCheck" style="width:16px;height:16px;accent-color:var(--gold);">
         <span style="font-family:'Trebuchet MS', sans-serif; font-size:12.5px; color:rgba(245,241,232,0.6);
                      text-transform:none; letter-spacing:normal;">
-          Aaj shoot / field duty hai (office nahi aa raha)
+          On a shoot / field duty today (not coming to office)
         </span>
       </label>
 
@@ -317,6 +317,22 @@
                       font-size:14px; margin-bottom:14px;">
       </div>
 
+      <div style="margin-bottom:14px;">
+        <label style="display:block; font-family:'Trebuchet MS', sans-serif; font-size:11px; letter-spacing:0.1em;
+               text-transform:uppercase; color:rgba(245,241,232,0.5); margin-bottom:8px;">
+          Take a photo of the office door (mandatory)
+        </label>
+        <input type="file" id="photoCapture" accept="image/*" capture="environment" style="display:none;">
+        <button type="button" id="photoCaptureBtn"
+                style="width:100%; padding:12px; background:var(--brown-2); border:1px dashed var(--line);
+                       color:var(--gold); border-radius:3px; font-family:'Trebuchet MS', sans-serif;
+                       font-size:13px; cursor:pointer;">
+          📷 Take Photo
+        </button>
+        <img id="photoPreview" style="display:none; margin-top:8px; width:100%; max-height:140px;
+             object-fit:cover; border-radius:3px; border:1px solid var(--line);">
+      </div>
+
       <div class="btns">
         <button class="btn-in" id="btnIn" disabled>Punch In</button>
         <button class="btn-out" id="btnOut" disabled>Punch Out</button>
@@ -326,7 +342,7 @@
       <button type="button" id="reminderBtn" style="width:100%; margin-top:14px; padding:11px;
               background:none; border:1px solid var(--line); color:var(--muted);
               border-radius:3px; font-family:'Trebuchet MS', sans-serif; font-size:12.5px; cursor:pointer;">
-        🔔 Reminder On karo (jab tak tab khula rahe)
+        🔔 Turn Reminder On (works while this tab stays open)
       </button>
     </div>
     <a class="admin-link" id="showAdmin">Admin view</a>
@@ -362,7 +378,7 @@
         </div>
 
         <div style="margin-top:14px;">
-          <label for="fpResetEmpSelect">Reset fingerprint (naya phone mila / register galat hua)</label>
+          <label for="fpResetEmpSelect">Reset fingerprint (new phone / registered incorrectly)</label>
           <select id="fpResetEmpSelect"></select>
           <button class="btn-out" style="width:100%;margin-top:8px;" id="fpResetBtn">Reset Fingerprint</button>
           <div class="msg" id="fpResetMsg"></div>
@@ -393,7 +409,7 @@
 
         <div style="height:1px;background:var(--line);margin:24px 0;"></div>
 
-        <label for="fullSheetMonth">Full Attendance Sheet (sabhi employees, ek mahine)</label>
+        <label for="fullSheetMonth">Full Attendance Sheet (all employees, one month)</label>
         <input type="month" id="fullSheetMonth">
         <div style="display:flex; gap:8px; margin-top:8px;">
           <button class="btn-in" style="flex:1;" id="fullSheetBtn">View Sheet</button>
@@ -471,6 +487,10 @@
    alter table employee_pins enable row level security;
    create policy "public read/write" on employee_pins for all using (true) with check (true);
 
+   -- Mandatory photo at punch time (evidence, not auto-verification) — run once:
+   -- alter table hr_punch_log add column if not exists photo_in text;
+   -- alter table hr_punch_log add column if not exists photo_out text;
+
    ============================================================ */
 const SUPABASE_URL = "https://dfduzpsnzruzsdjipgww.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_LA6lqjm2yy7DzCDURwjUjg_dAW1-vki";
@@ -502,8 +522,6 @@ const EMPLOYEES = [
   { name: "Aman",    team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
   { name: "Samiksha",team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
   { name: "Dipika", team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
-  { name: "kvina", team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
-
 
 
   // ---- Social Media Sales — same shift & week-off as Social Media team ----
@@ -516,18 +534,17 @@ const EMPLOYEES = [
   // ⚠️ shiftStart/shiftEnd below is a placeholder (9:00-6:00 for everyone) — you told
   // us it's split roughly half-and-half. Wherever someone is actually 10:30-7,
   // change BOTH shiftStart to "10:30" AND shiftEnd to "19:00" for that person.
-  { name: "Arti Manager", team: "Real Estate", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: null },
-  { name: "Nisha Mam",    team: "Real Estate", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: null },
-  { name: "Krutika",      team: "Real Estate", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: null },
-  { name: "Vaishali",     team: "Real Estate", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: null },
-  { name: "Anand Sir",    team: "Real Estate", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: null },
+  { name: "Arti Manager", team: "Real Estate", shiftStart: "09:00", shiftEnd: "18:00", weeklyOff: null },
+  { name: "Nisha Mam",    team: "Real Estate", shiftStart: "09:00", shiftEnd: "18:00", weeklyOff: null },
+  { name: "Krutika",      team: "Real Estate", shiftStart: "09:00", shiftEnd: "18:00", weeklyOff: null },
+  { name: "Vaishali",     team: "Real Estate", shiftStart: "09:00", shiftEnd: "18:00", weeklyOff: null },
+  { name: "Anand Sir",    team: "Real Estate", shiftStart: "09:00", shiftEnd: "18:00", weeklyOff: null },
   { name: "Harsh",        team: "Real Estate", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: null },
-  { name: "Ashit",        team: "Real Estate", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: null },
+  { name: "Ashit",        team: "Real Estate", shiftStart: "09:00", shiftEnd: "18:00", weeklyOff: null },
   { name: "Krunal",       team: "Real Estate", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: null },
-  { name: "Anirudhsinh",  team: "Real Estate", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: null },
-  { name: "Devrajsinh",   team: "Real Estate", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: null },
-  { name: "Rudra",        team: "Real Estate", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: null },
-  { name: "Kinjal",       team: "Real Estate", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: null }
+  { name: "Anirudhsinh",  team: "Real Estate", shiftStart: "09:00", shiftEnd: "18:00", weeklyOff: null },
+  { name: "Devrajsinh",   team: "Real Estate", shiftStart: "9:00", shiftEnd: "18:00", weeklyOff: null },
+  { name: "Kinjal",       team: "Real Estate", shiftStart: "9:00", shiftEnd: "18:00", weeklyOff: null }
   // add more employees here, same format
   // PIN fallback (for broken fingerprint sensors) is no longer set here in code —
   // Deep Sir sets/removes it from the Admin view directly (Supabase table: employee_pins).
@@ -594,6 +611,47 @@ function distanceMeters(lat1, lng1, lat2, lng2){
   const dLng = toRad(lng2 - lng1);
   const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng/2)**2;
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+// ---------- Mandatory photo at punch time (evidence, not auto-verification) ----------
+let capturedPhotoDataUrl = null;
+
+document.getElementById('photoCaptureBtn').addEventListener('click', ()=>{
+  document.getElementById('photoCapture').click();
+});
+
+document.getElementById('photoCapture').addEventListener('change', (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev)=>{
+    const img = new Image();
+    img.onload = ()=>{
+      // Compress/resize so the database row stays small (~20-40KB per photo)
+      const maxW = 480;
+      const scale = Math.min(1, maxW / img.width);
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width * scale;
+      canvas.height = img.height * scale;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      capturedPhotoDataUrl = canvas.toDataURL('image/jpeg', 0.55);
+      const preview = document.getElementById('photoPreview');
+      preview.src = capturedPhotoDataUrl;
+      preview.style.display = 'block';
+      document.getElementById('photoCaptureBtn').textContent = '📷 Photo taken — tap to retake';
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+});
+
+function resetPhotoCapture(){
+  capturedPhotoDataUrl = null;
+  document.getElementById('photoPreview').style.display = 'none';
+  document.getElementById('photoPreview').src = '';
+  document.getElementById('photoCaptureBtn').textContent = '📷 Take Photo';
+  document.getElementById('photoCapture').value = '';
 }
 
 function computeDayStatus(punchInIso){
@@ -750,7 +808,7 @@ document.getElementById('fpRegisterBtn').addEventListener('click', async ()=>{
     msgBox.textContent = 'Registered! Ab isi device se punch kar sakte ho.';
     msgBox.className = 'msg ok';
   } catch(err){
-    msgBox.textContent = 'Registration cancel ho gaya ya fail hua. Dubara try karo.';
+    msgBox.textContent = 'Registration was cancelled or failed. Try again.';
     msgBox.className = 'msg err';
   }
 });
@@ -774,10 +832,11 @@ async function refreshStatus(){
   msgBox.className = 'msg';
   document.getElementById('remarksInput').value = '';
   document.getElementById('remarksWrap').style.display = 'none';
+  resetPhotoCapture();
 
   if(!typed.trim()){
     btnIn.disabled = true; btnOut.disabled = true;
-    setStatus('wait','Apna naam type karo');
+    setStatus('wait','Type your name');
     document.getElementById('fpWrap').style.display = 'none';
     document.getElementById('pinFallbackWrap').style.display = 'none';
     currentCredentialId = null;
@@ -785,11 +844,11 @@ async function refreshStatus(){
   }
   if(!name){
     btnIn.disabled = true; btnOut.disabled = true;
-    setStatus('wait','Naam nahi mila');
+    setStatus('wait','Name not found');
     document.getElementById('fpWrap').style.display = 'none';
     document.getElementById('pinFallbackWrap').style.display = 'none';
     currentCredentialId = null;
-    msgBox.textContent = 'Ye naam list me nahi hai — apna poora, sahi naam type karo (jaisa HR ke paas hai).';
+    msgBox.textContent = "This name isn't on the list — type your full, correct name (as it is with HR).";
     msgBox.className = 'msg err';
     return;
   }
@@ -905,17 +964,17 @@ async function verifyIdentity(name){
   }
   identityUnverifiedFlag = false;
   if(!currentCredentialId){
-    msgBox.textContent = 'Pehle "Register Fingerprint" button dabao (upar).';
+    msgBox.textContent = 'Press the "Register Fingerprint" button above first.';
     msgBox.className = 'msg err';
     return false;
   }
   try{
-    msgBox.textContent = 'Fingerprint/Face verify ho raha hai…';
+    msgBox.textContent = 'Verifying fingerprint/Face…';
     msgBox.className = 'msg';
     await verifyFingerprint(currentCredentialId);
     return true;
   } catch(err){
-    msgBox.textContent = 'Fingerprint match nahi hua ya cancel ho gaya. Dubara try karo.';
+    msgBox.textContent = "Fingerprint didn't match, or it was cancelled. Try again.";
     msgBox.className = 'msg err';
     return false;
   }
@@ -935,6 +994,12 @@ btnIn.addEventListener('click', async ()=>{
     return;
   }
 
+  if(!capturedPhotoDataUrl){
+    msgBox.textContent = 'Tap "📷 Take Photo" first — punch in needs a photo.';
+    msgBox.className = 'msg err';
+    return;
+  }
+
   btnIn.disabled = true;
   msgBox.textContent = 'Checking your location…';
   msgBox.className = 'msg';
@@ -950,7 +1015,7 @@ btnIn.addEventListener('click', async ()=>{
   if(!fieldDuty){
     const dist = distanceMeters(loc.lat, loc.lng, OFFICE_LAT, OFFICE_LNG);
     if(dist > RADIUS_METERS){
-      msgBox.textContent = "You're too far from the office to punch in. If you're on a shoot, tick 'field duty' above.";
+      msgBox.textContent = `You're too far from the office to punch in (~${Math.round(dist)}m away, need within ${RADIUS_METERS}m). If you're on a shoot, tick 'field duty' above.`;
       msgBox.className = 'msg err';
       btnIn.disabled = false;
       return;
@@ -968,7 +1033,8 @@ btnIn.addEventListener('click', async ()=>{
     in_lat: loc.lat, in_lng: loc.lng,
     day_status: dayStatus,
     remarks: unverifiedTag + (fieldDuty ? ('[Field] ' + remark) : (remark || '')) || null,
-    field_duty: fieldDuty
+    field_duty: fieldDuty,
+    photo_in: capturedPhotoDataUrl
   });
 
   if(error){
@@ -986,7 +1052,7 @@ btnIn.addEventListener('click', async ()=>{
 btnOut.addEventListener('click', async ()=>{
   const name = matchTypedName(empSelect.value);
   if(!name){
-    msgBox.textContent = 'Pehle apna naam type karo.';
+    msgBox.textContent = 'Type your name first.';
     msgBox.className = 'msg err';
     return;
   }
@@ -1006,12 +1072,12 @@ btnOut.addEventListener('click', async ()=>{
       return;
     }
     if(!data || !data.punch_in){
-      msgBox.textContent = "Aapne abhi tak punch in nahi kiya hai — pehle Punch In karo.";
+      msgBox.textContent = "You haven't punched in yet today — punch in first.";
       msgBox.className = 'msg err';
       return;
     }
     if(data.punch_out){
-      msgBox.textContent = "Aaj ka punch out already ho chuka hai.";
+      msgBox.textContent = "Today's punch out is already done.";
       msgBox.className = 'msg err';
       return;
     }
@@ -1020,6 +1086,12 @@ btnOut.addEventListener('click', async ()=>{
 
   if(!(await verifyIdentity(name))) return;
   const fieldDuty = currentRow.field_duty || document.getElementById('fieldDutyCheck').checked;
+
+  if(!capturedPhotoDataUrl){
+    msgBox.textContent = 'Tap "📷 Take Photo" first — punch out needs a photo.';
+    msgBox.className = 'msg err';
+    return;
+  }
 
   btnOut.disabled = true;
   msgBox.textContent = 'Checking your location…';
@@ -1036,7 +1108,7 @@ btnOut.addEventListener('click', async ()=>{
   if(!fieldDuty){
     const dist = distanceMeters(loc.lat, loc.lng, OFFICE_LAT, OFFICE_LNG);
     if(dist > RADIUS_METERS){
-      msgBox.textContent = "You're too far from the office to punch out. If you're on a shoot, tick 'field duty' above.";
+      msgBox.textContent = `You're too far from the office to punch out (~${Math.round(dist)}m away, need within ${RADIUS_METERS}m). If you're on a shoot, tick 'field duty' above.`;
       msgBox.className = 'msg err';
       btnOut.disabled = false;
       return;
@@ -1061,7 +1133,8 @@ btnOut.addEventListener('click', async ()=>{
   const { error } = await sb.from('hr_punch_log')
     .update({
       punch_out: nowIso, out_lat: loc.lat, out_lng: loc.lng,
-      remarks: combinedRemark ? (currentRow.remarks ? currentRow.remarks + ' | ' + combinedRemark : combinedRemark) : currentRow.remarks
+      remarks: combinedRemark ? (currentRow.remarks ? currentRow.remarks + ' | ' + combinedRemark : combinedRemark) : currentRow.remarks,
+      photo_out: capturedPhotoDataUrl
     })
     .eq('id', currentRow.id);
 
@@ -1179,7 +1252,7 @@ document.getElementById('pinSetBtn').addEventListener('click', async ()=>{
   const msg = document.getElementById('pinAdminMsg');
   if(!name) return;
   if(!pinVal || pinVal.length < 4){
-    msg.textContent = 'Kam se kam 4 digit ka PIN daalo.';
+    msg.textContent = 'Enter a PIN of at least 4 digits.';
     msg.className = 'msg err';
     return;
   }
@@ -1192,7 +1265,7 @@ document.getElementById('pinSetBtn').addEventListener('click', async ()=>{
     msg.textContent = 'Could not save. Check Supabase setup (see SQL comment at top).';
     msg.className = 'msg err';
   } else {
-    msg.textContent = `${name} ab PIN (${pinVal}) se punch kar sakta hai — fingerprint ki zarurat nahi.`;
+    msg.textContent = `${name} can now punch with PIN (${pinVal}) — no fingerprint needed.`;
     msg.className = 'msg ok';
     document.getElementById('pinAdminValue').value = '';
   }
@@ -1210,7 +1283,7 @@ document.getElementById('pinRemoveBtn').addEventListener('click', async ()=>{
     msg.textContent = 'Could not remove. Try again.';
     msg.className = 'msg err';
   } else {
-    msg.textContent = `${name} ab wapas fingerprint/Face ID se punch karega.`;
+    msg.textContent = `${name} will now punch with fingerprint/Face ID again.`;
     msg.className = 'msg ok';
   }
 });
@@ -1219,6 +1292,14 @@ function mapLink(lat, lng, label){
   if(lat === null || lat === undefined || lng === null || lng === undefined) return '';
   return `<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" rel="noopener"
             style="color:var(--gold); text-decoration:none;">📍${label}</a>`;
+}
+
+function photoThumb(dataUrl, label){
+  if(!dataUrl) return '';
+  return `<a href="${dataUrl}" target="_blank" rel="noopener">
+            <img src="${dataUrl}" alt="${label}" title="${label}"
+                 style="width:32px;height:32px;object-fit:cover;border-radius:3px;border:1px solid var(--line);">
+          </a>`;
 }
 
 async function loadAdminData(date){
@@ -1247,6 +1328,7 @@ async function loadAdminData(date){
     }
     const statusColor = dayStatus === 'Week Off' ? 'var(--gold)' : (dayStatus === 'Half Day' ? 'var(--late)' : 'inherit');
     const locLinks = [mapLink(r.in_lat, r.in_lng, 'In'), mapLink(r.out_lat, r.out_lng, 'Out')].filter(Boolean).join(' &nbsp; ') || '--';
+    const photos = [photoThumb(r.photo_in, 'Punch In photo'), photoThumb(r.photo_out, 'Punch Out photo')].filter(Boolean).join(' ') || '--';
     return `<tr>
       <td>${r.employee_name}${r.field_duty ? ' <span style="color:var(--gold)">📍Field</span>' : ''}</td>
       <td style="color:${statusColor}">${dayStatus}</td>
@@ -1254,6 +1336,7 @@ async function loadAdminData(date){
       <td>${fmtTime(r.punch_out)}</td>
       <td>${hours}</td>
       <td>${locLinks}</td>
+      <td>${photos}</td>
       <td style="color:rgba(245,241,232,0.6)">${r.remarks || '--'}</td>
     </tr>`;
   }).join('');
@@ -1263,7 +1346,7 @@ async function loadAdminData(date){
     return `<tr>
       <td>${e.name}</td>
       <td style="color:${weekOff ? 'var(--gold)' : 'var(--late)'}">${weekOff ? 'Week Off' : 'Absent'}</td>
-      <td>--</td><td>--</td><td>--</td><td>--</td><td>--</td>
+      <td>--</td><td>--</td><td>--</td><td>--</td><td>--</td><td>--</td>
     </tr>`;
   }).join('');
 
@@ -1273,7 +1356,7 @@ async function loadAdminData(date){
   }
 
   wrap.innerHTML = `<table>
-    <thead><tr><th>Name</th><th>Status</th><th>In</th><th>Out</th><th>Hours</th><th>Location</th><th>Remarks</th></tr></thead>
+    <thead><tr><th>Name</th><th>Status</th><th>In</th><th>Out</th><th>Hours</th><th>Location</th><th>Photo</th><th>Remarks</th></tr></thead>
     <tbody>${rows}</tbody>
   </table>`;
 }
@@ -1285,7 +1368,7 @@ let lastSummaryMonth = '';
 
 document.getElementById('summaryCsvBtn').addEventListener('click', ()=>{
   if(!lastSummaryRows.length){
-    alert('Pehle ek month select karo, summary load hone do, phir download karo.');
+    alert('Select a month first, let the summary load, then download.');
     return;
   }
   const header = ['Name','Team','Present','Half Day','Week Off','Absent','Working Hours'];
@@ -1467,7 +1550,7 @@ async function loadFullSheet(monthStr){
 
 function downloadFullSheetCsv(){
   if(!lastFullSheetRows.length){
-    alert('Pehle "View Sheet" dabao, uske baad download karo.');
+    alert('Tap "View Sheet" first, then download.');
     return;
   }
   const monthStr = document.getElementById('fullSheetMonth').value;
@@ -1599,24 +1682,24 @@ function startReminderLoop(){
       .select('punch_in').eq('employee_name', name).eq('work_date', today).maybeSingle();
     if(data && data.punch_in) return; // already punched in, no need to remind
 
-    new Notification('Lavista Attendance', { body: `${name}, abhi tak punch in nahi kiya — kar lo!` });
+    new Notification('Lavista Attendance', { body: `${name}, you haven't punched in yet — do it now!` });
     reminderFiredToday = today;
   }, 60000); // check every minute
 }
 
 reminderBtn.addEventListener('click', async ()=>{
   if(!('Notification' in window)){
-    reminderBtn.textContent = '🔕 Ye browser notifications support nahi karta';
+    reminderBtn.textContent = "🔕 This browser doesn't support notifications";
     return;
   }
   const perm = await Notification.requestPermission();
   if(perm === 'granted'){
-    reminderBtn.textContent = '🔔 Reminder ON — is tab ko khula rakho';
+    reminderBtn.textContent = '🔔 Reminder ON — keep this tab open';
     reminderBtn.style.color = 'var(--gold)';
     reminderBtn.style.borderColor = 'var(--gold)';
     startReminderLoop();
   } else {
-    reminderBtn.textContent = '🔕 Permission nahi mili — phone settings me allow karo';
+    reminderBtn.textContent = '🔕 Permission not granted — allow it in phone settings';
   }
 });
 
