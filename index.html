@@ -230,6 +230,7 @@ const USERS=[
   {id:"akshay",name:"Akshay",role:"Video Editor",pass:"changeme",dept:"Creative"},
   {id:"nihal",name:"Nihal",role:"Videographer",pass:"changeme",dept:"Creative"},
   {id:"nayan",name:"Nayan",role:"Videographer",pass:"changeme",dept:"Creative"},
+  {id:"kinjal",name:"Kinjal",role:"HR",pass:"changeme",dept:"HR"},
 ];
 
 const CLIENTS=[
@@ -374,6 +375,7 @@ async function doLogout(){
 function renderTabs(){
   const isAdmin=CU.isAdmin;
   const showExpenses=CU.isAdmin||CU.id==="piyush";
+  const showHrExpenses=CU.isAdmin||CU.id==="kinjal";
   const tabs=[
     {id:"update",label:"📝 Evening Update"},
     {id:"attendance",label:"🕐 Attendance"},
@@ -381,6 +383,7 @@ function renderTabs(){
     {id:"planner",label:"📅 Content Planner"},
     {id:"shoot",label:"📸 Shoot Checklist"},
     ...(showExpenses?[{id:"expenses",label:"💰 Expenses"}]:[]),
+    ...(showHrExpenses?[{id:"hrexpenses",label:"🧾 HR Kharcha"}]:[]),
     ...(isAdmin?[{id:"team",label:"👥 Team View"},{id:"history",label:"🗂️ History"},{id:"attreport",label:"📊 Attendance Report"},{id:"adminpanel",label:"🔐 Manage Passwords"}]:[{id:"myhistory",label:"🗂️ My History"}])
   ];
   document.getElementById("tabsRow").innerHTML=tabs.map(t=>
@@ -401,6 +404,7 @@ function renderContent(){
   else if(TAB==="myhistory"){c.innerHTML=buildMyHistoryPage();loadMyHistory();}
   else if(TAB==="adminpanel"){c.innerHTML='<div class="loading">⏳ Loading...</div>';loadAdminPanel();}
   else if(TAB==="expenses"){c.innerHTML='<div class="loading">⏳ Loading...</div>';loadExpenses();}
+  else if(TAB==="hrexpenses"){c.innerHTML='<div class="loading">⏳ Loading...</div>';loadHrExpenses();}
   else if(TAB==="attendance"){c.innerHTML='<div class="loading">⏳ Loading...</div>';loadAttendance();}
   else if(TAB==="attreport"){c.innerHTML='<div class="loading">⏳ Loading...</div>';loadAttReport();}
 }
@@ -1097,6 +1101,116 @@ async function deleteAdvance(id){
   if(!confirm("Ye advance delete karna chahte ho?"))return;
   await sb.from("advances").delete().eq("id",id);
   loadExpenses();
+}
+
+// ═══ HR EXPENSES (separate section — only Kinjal + Deep Sir can see) ═══
+async function loadHrExpenses(forceMonth){
+  const now=new Date();
+  const monthStr=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+
+  const {data:expData}=await sb.from("hr_expenses").select("*").order("date",{ascending:false});
+  const allExp=expData||[];
+
+  const months=[...new Set(allExp.map(e=>e.date?.slice(0,7)))].sort().reverse();
+  const selMonth=forceMonth||months[0]||monthStr;
+  const monthExp=allExp.filter(e=>e.date?.startsWith(selMonth));
+  const totalExp=monthExp.reduce((s,e)=>s+(e.amount||0),0);
+  const isAdmin=CU.isAdmin;
+
+  document.getElementById("mainContent").innerHTML=`
+  <div class="section-title">🧾 HR Kharcha — Lavista</div>
+  <div style="font-size:12px;color:#6b7280;margin-bottom:16px">Ye section sirf HR aur Deep Sir ko dikhta hai.</div>
+
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+    <label class="form-label" style="margin:0">Month:</label>
+    <select class="month-select" id="hrMonthSel" onchange="loadHrExpenses(this.value)">
+      ${months.map(m=>`<option value="${m}" ${m===selMonth?"selected":""}>${m}</option>`).join("")}
+      <option value="${monthStr}" ${!months.includes(monthStr)?"selected":""}>Current Month</option>
+    </select>
+  </div>
+
+  <div class="summary-grid">
+    <div class="summary-box" style="border:1px solid #f9731644">
+      <div class="summary-val" style="color:#f97316">₹${totalExp.toLocaleString("en-IN")}</div>
+      <div class="summary-lbl">Total HR Kharcha</div>
+    </div>
+  </div>
+
+  <div class="exp-form">
+    <div style="font-size:14px;font-weight:700;margin-bottom:14px;color:#e5e7eb">➕ Naya Kharcha Add Karo</div>
+    <div class="exp-grid">
+      <div>
+        <label class="form-label">Amount (₹)</label>
+        <input class="exp-input" id="hrExpAmt" type="number" placeholder="e.g. 500" />
+      </div>
+      <div>
+        <label class="form-label">Category</label>
+        <input class="exp-input" id="hrExpCat" placeholder="e.g. Stationery, Snacks, Salary Advance" list="hrCatList" />
+        <datalist id="hrCatList">
+          <option value="Office Supplies">
+          <option value="Stationery">
+          <option value="Snacks & Tea">
+          <option value="Cleaning">
+          <option value="Salary Advance">
+          <option value="Recruitment">
+          <option value="Petrol">
+          <option value="Courier">
+          <option value="Misc">
+        </datalist>
+      </div>
+      <div>
+        <label class="form-label">Date</label>
+        <input class="exp-input" id="hrExpDate" type="date" value="${TKEY}" />
+      </div>
+    </div>
+    <div style="margin-bottom:14px">
+      <label class="form-label">Description</label>
+      <input class="exp-input" id="hrExpDesc" placeholder="Kya kharcha kiya — detail me likho" />
+    </div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <button class="btn-exp" onclick="addHrExpense()">💾 Add Kharcha</button>
+      <span id="hrExpTag" style="display:none;color:#4ade80;font-size:13px">✓ Saved!</span>
+    </div>
+  </div>
+
+  <div style="font-size:14px;font-weight:700;margin-bottom:12px">📋 ${selMonth} — Kharche ki List</div>
+  ${monthExp.length?monthExp.map(e=>`
+  <div class="exp-card">
+    <div class="exp-amount">₹${(e.amount||0).toLocaleString("en-IN")}</div>
+    <span class="exp-cat">${escHtml(e.category||"Misc")}</span>
+    <div class="exp-desc">${escHtml(e.description||"")}</div>
+    <div class="exp-date">📅 ${fmtDate(e.date)} ${e.added_by?`• ${e.added_by}`:""}</div>
+    ${isAdmin?`<button class="exp-del" onclick="deleteHrExpense(${e.id})">🗑️</button>`:""}
+  </div>`).join(""):`<div class="no-data">📭 Is month me koi HR kharcha nahi add hua.</div>`}
+  `;
+}
+
+async function addHrExpense(){
+  const amt=parseFloat(document.getElementById("hrExpAmt").value);
+  const cat=document.getElementById("hrExpCat").value.trim();
+  const desc=document.getElementById("hrExpDesc").value.trim();
+  const date=document.getElementById("hrExpDate").value;
+  if(!amt||!desc){alert("Amount aur description zaroori hai!");return;}
+  const {error}=await sb.from("hr_expenses").insert({
+    amount:amt,category:cat||"Misc",description:desc,date:date,
+    added_by:CU.name,employee_id:CU.id
+  });
+  const tag=document.getElementById("hrExpTag");
+  tag.style.display="inline";
+  tag.textContent=error?"❌ Error!":"✓ Saved!";
+  tag.style.color=error?"#f87171":"#4ade80";
+  if(!error){
+    document.getElementById("hrExpAmt").value="";
+    document.getElementById("hrExpCat").value="";
+    document.getElementById("hrExpDesc").value="";
+    setTimeout(()=>loadHrExpenses(date.slice(0,7)),800);
+  }
+}
+
+async function deleteHrExpense(id){
+  if(!confirm("Ye expense delete karna chahte ho?"))return;
+  await sb.from("hr_expenses").delete().eq("id",id);
+  loadHrExpenses();
 }
 
 // ═══ ATTENDANCE ═══
