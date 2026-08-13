@@ -179,7 +179,7 @@ select { background: #1a1a2e; border: 1px solid #2d2d44; border-radius: 8px; pad
   <div class="login-box">
     <div class="login-icon">📊</div>
     <div class="login-title">Lavista Marketing CRM</div>
-    <div class="login-sub">Apna daily evening update yahan submit karo</div>
+    <div class="login-sub">Submit your daily evening update here</div>
     <div class="error-box" id="errBox">Wrong username or password.</div>
     <label class="form-label">Username</label>
     <input class="form-input" id="uInp" placeholder="e.g. khushi" autocomplete="username" />
@@ -383,7 +383,7 @@ function renderTabs(){
     {id:"planner",label:"📅 Content Planner"},
     {id:"shoot",label:"📸 Shoot Checklist"},
     ...(showExpenses?[{id:"expenses",label:"💰 Expenses"}]:[]),
-    ...(showHrExpenses?[{id:"hrexpenses",label:"🧾 HR Kharcha"}]:[]),
+    ...(showHrExpenses?[{id:"hrexpenses",label:"🧾 HR Expenses"}]:[]),
     ...(isAdmin?[{id:"team",label:"👥 Team View"},{id:"history",label:"🗂️ History"},{id:"attreport",label:"📊 Attendance Report"},{id:"adminpanel",label:"🔐 Manage Passwords"}]:[{id:"myhistory",label:"🗂️ My History"}])
   ];
   document.getElementById("tabsRow").innerHTML=tabs.map(t=>
@@ -413,18 +413,18 @@ function renderContent(){
 function buildUpdateForm(){
   const col=DC[CU.dept]||"#6b7280";
   const hr=new Date().getHours();
-  const rem=hr<18?`<div class="reminder-banner">⏰ Evening update 6 PM ke baad submit karo. Abhi ${new Date().toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"})} ho rahe hain.</div>`:"";
+  const rem=hr<18?`<div class="reminder-banner">⏰ Submit your evening update after 6 PM. It's currently ${new Date().toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"})}.</div>`:"";
   return `${rem}<div class="card" style="border:1px solid ${col}33">
     <div class="update-header">
       <div class="update-avatar" style="background:${col}22;border:2px solid ${col};color:${col}">${ini(CU.name)}</div>
       <div><div style="font-size:17px;font-weight:700">🌙 Evening Update — ${TSTR}</div><div style="color:${col};font-size:12px">${CU.name} • ${CU.role}</div></div>
       <select id="statusSel" style="margin-left:auto"><option>Not Started</option><option>In Progress</option><option selected>Done</option></select>
     </div>
-    <div style="margin-bottom:16px"><label class="form-label">✅ Aaj kya kiya?</label><textarea id="kyaKiyaTxt" placeholder="Aaj ka poora kaam batao..."></textarea></div>
+    <div style="margin-bottom:16px"><label class="form-label">✅ What did you do today?</label><textarea id="kyaKiyaTxt" placeholder="Describe all of today's work..."></textarea></div>
     <div style="margin-bottom:16px"><label class="form-label">📋 Completed Tasks</label>
       <div id="taskList"><input class="task-input" id="tk_0" placeholder="Task 1" /><input class="task-input" id="tk_1" placeholder="Task 2" /></div>
       <button class="btn-add" onclick="addTask()">+ Add Task</button></div>
-    <div style="margin-bottom:16px"><label class="form-label">⏳ Pending / Kal ke liye</label><textarea id="pendingTxt" style="min-height:70px" placeholder="Jo kaam aaj nahi hua..."></textarea></div>
+    <div style="margin-bottom:16px"><label class="form-label">⏳ Pending / For Tomorrow</label><textarea id="pendingTxt" style="min-height:70px" placeholder="Work that wasn't finished today..."></textarea></div>
     ${(CU.dept==="Sales"||CU.dept==="Management")?`<div style="margin-bottom:16px"><label class="form-label">📞 Calls Count</label><input class="task-input" id="callsTxt" placeholder="Kitne calls kiye aaj" /></div>`:""}
     <div style="display:flex;align-items:center;margin-top:8px"><button class="btn-save" onclick="saveUpdate()">💾 Submit Evening Update</button><span class="saved-tag" id="savedTag">✓ Saved!</span></div>
   </div>`;
@@ -478,7 +478,7 @@ async function loadClients(){
 
   let alertHtml="";
   if(alerts.length>0){
-    alertHtml=`<div class="alert-banner">🔔 <b>Aaj ke pending posts:</b> ${alerts.join(" | ")} — Content Planner me jaake mark karo!</div>`;
+    alertHtml=`<div class="alert-banner">🔔 <b>Today's pending posts:</b> ${alerts.join(" | ")} — go mark them in Content Planner!</div>`;
   }
 
   // Build chart data
@@ -643,7 +643,7 @@ function buildShootChecklist(){
   const cicons={creata:"🏗️",nityam:"🏠",scalixo:"📱",lavista:"🚀",lavista_est:"🏆"};
   const cids=Object.keys(SHOOT_CHECKLISTS);
   let html=`<div class="section-title">📸 Shoot Checklist — Videographer Guide</div>
-  <p style="font-size:12px;color:#6b7280;margin-bottom:16px">Har client ke liye shoot karte waqt ye checklist follow karo. Tick karo jaise complete ho.</p>
+  <p style="font-size:12px;color:#6b7280;margin-bottom:16px">Follow this checklist while shooting for each client. Tick items as you complete them.</p>
   <div class="planner-tabs">`;
   cids.forEach((id,i)=>{
     html+=`<button class="planner-tab${i===0?" active":""}" onclick="showShoot('${id}',this)">${cicons[id]} ${cnames[id]}</button>`;
@@ -669,7 +669,7 @@ function buildShootChecklist(){
     </div>
     <div style="background:#111118;border:1px solid ${c.color}33;border-radius:12px;padding:16px;margin-top:12px">
       <div style="font-size:12px;font-weight:700;color:#a78bfa;margin-bottom:8px">📝 Shoot Notes / Custom Items</div>
-      <textarea style="min-height:80px" placeholder="Extra shots ya notes likho yahan..." id="shoot_notes_${id}" onchange="saveShootNote('${id}',this.value)">${escHtml(localStorage.getItem('snote_'+id)||"")}</textarea>
+      <textarea style="min-height:80px" placeholder="Write extra shots or notes here..." id="shoot_notes_${id}" onchange="saveShootNote('${id}',this.value)">${escHtml(localStorage.getItem('snote_'+id)||"")}</textarea>
     </div>
     </div>`;
   });
@@ -735,11 +735,11 @@ async function loadTeam(){
         <span class="status-badge" style="background:${sc}22;color:${sc};border:1px solid ${sc}44">${u.status}</span>
       </div>
       ${u.submitted_at?`<div style="color:#4b5563;font-size:10px;margin-bottom:8px">🕐 ${u.submitted_at}</div>`:""}
-      ${u.kya_kiya?`<div class="update-block"><div class="update-lbl" style="color:#16a34a">✅ Kya kiya</div><div class="update-txt">${escHtml(u.kya_kiya)}</div></div>`:""}
+      ${u.kya_kiya?`<div class="update-block"><div class="update-lbl" style="color:#16a34a">✅ What was done</div><div class="update-txt">${escHtml(u.kya_kiya)}</div></div>`:""}
       ${tasks.length?`<div class="update-block"><div class="update-lbl" style="color:#9ca3af">📋 Tasks</div>${tasks.map(t=>`<div class="task-line" style="border-left:2px solid ${col}44">• ${escHtml(t)}</div>`).join("")}</div>`:""}
       ${u.pending?`<div class="update-block"><div class="update-lbl" style="color:#f59e0b">⏳ Pending</div><div class="update-txt">${escHtml(u.pending)}</div></div>`:""}
       ${u.calls?`<div class="update-block"><div class="update-lbl" style="color:#3b82f6">📞 Calls</div><div class="update-txt">${escHtml(u.calls)}</div></div>`:""}
-      ${!u.kya_kiya&&!tasks.length?`<div class="no-update-txt">⚠️ Update submit nahi hua.</div>`:""}
+      ${!u.kya_kiya&&!tasks.length?`<div class="no-update-txt">⚠️ Update not submitted.</div>`:""}
     </div>`;
   }).join("")}</div>`;
 }
@@ -766,7 +766,7 @@ async function loadHistory(){
   if(emp)q=q.eq("employee_id",emp);
   const {data,error}=await q;
   const el=document.getElementById("historyResults");
-  if(error||!data||!data.length){el.innerHTML='<div class="no-data">📭 Koi update nahi mila.</div>';return;}
+  if(error||!data||!data.length){el.innerHTML='<div class="no-data">📭 No updates found.</div>';return;}
   const SC={"Done":"#16a34a","In Progress":"#f59e0b","Not Started":"#6b7280"};
   el.innerHTML=data.map(u=>{
     const col=DC[u.dept]||"#6b7280";const sc=SC[u.status]||"#6b7280";
@@ -784,7 +784,7 @@ async function loadHistory(){
           <button onclick="deleteHistory(${u.id})" style="background:#2d1a1a;border:1px solid #7f1d1d;border-radius:6px;padding:3px 8px;color:#f87171;font-size:11px;cursor:pointer">🗑️ Delete</button>
         </div>
       </div>
-      ${u.kya_kiya?`<div class="update-block"><div class="update-lbl" style="color:#16a34a">✅ Kya kiya</div><div class="update-txt">${escHtml(u.kya_kiya)}</div></div>`:""}
+      ${u.kya_kiya?`<div class="update-block"><div class="update-lbl" style="color:#16a34a">✅ What was done</div><div class="update-txt">${escHtml(u.kya_kiya)}</div></div>`:""}
       ${tasks.length?`<div class="update-block"><div class="update-lbl" style="color:#9ca3af">📋 Tasks</div>${tasks.map(t=>`<div class="task-line" style="border-left:2px solid ${col}44">• ${escHtml(t)}</div>`).join("")}</div>`:""}
       ${u.pending?`<div class="update-block"><div class="update-lbl" style="color:#f59e0b">⏳ Pending</div><div class="update-txt">${escHtml(u.pending)}</div></div>`:""}
       ${u.calls?`<div class="update-block"><div class="update-lbl" style="color:#3b82f6">📞 Calls</div><div class="update-txt">${escHtml(u.calls)}</div></div>`:""}
@@ -793,7 +793,7 @@ async function loadHistory(){
 }
 
 async function deleteHistory(id){
-  if(!confirm("Ye update permanently delete karna chahte ho?"))return;
+  if(!confirm("Do you want to permanently delete this update?"))return;
   const {error}=await sb.from("daily_updates").delete().eq("id",id);
   if(error){alert("Error: "+error.message);return;}
   loadHistory();
@@ -815,7 +815,7 @@ async function loadMyHistory(){
   const to=document.getElementById("myToDate")?.value||TKEY;
   const {data,error}=await sb.from("daily_updates").select("*").eq("employee_id",CU.id).gte("date",from).lte("date",to).order("date",{ascending:false});
   const el=document.getElementById("myHistoryResults");
-  if(error||!data||!data.length){el.innerHTML='<div class="no-data">📭 Koi update nahi mila.</div>';return;}
+  if(error||!data||!data.length){el.innerHTML='<div class="no-data">📭 No updates found.</div>';return;}
   const col=DC[CU.dept]||"#6b7280";
   const SC={"Done":"#16a34a","In Progress":"#f59e0b","Not Started":"#6b7280"};
   el.innerHTML=data.map(u=>{
@@ -829,7 +829,7 @@ async function loadMyHistory(){
           <span class="status-badge" style="background:${sc}22;color:${sc};border:1px solid ${sc}44">${u.status}</span>
         </div>
       </div>
-      ${u.kya_kiya?`<div class="update-block"><div class="update-lbl" style="color:#16a34a">✅ Kya kiya</div><div class="update-txt">${escHtml(u.kya_kiya)}</div></div>`:""}
+      ${u.kya_kiya?`<div class="update-block"><div class="update-lbl" style="color:#16a34a">✅ What was done</div><div class="update-txt">${escHtml(u.kya_kiya)}</div></div>`:""}
       ${tasks.length?`<div class="update-block"><div class="update-lbl" style="color:#9ca3af">📋 Tasks</div>${tasks.map(t=>`<div class="task-line" style="border-left:2px solid ${col}44">• ${escHtml(t)}</div>`).join("")}</div>`:""}
       ${u.pending?`<div class="update-block"><div class="update-lbl" style="color:#f59e0b">⏳ Pending</div><div class="update-txt">${escHtml(u.pending)}</div></div>`:""}
     </div>`;
@@ -855,7 +855,7 @@ async function loadAdminPanel(){
         <div style="flex:1"><div style="font-weight:600;font-size:14px">${u.name}</div><div style="color:${col};font-size:11px">${u.role} • username: <b>${u.id}</b></div></div>
         <span class="status-badge" style="background:${hasCustom?'#16a34a22':'#f59e0b22'};color:${hasCustom?'#16a34a':'#f59e0b'};border:1px solid ${hasCustom?'#16a34a44':'#f59e0b44'}">${hasCustom?'✓ Set':'⚠️ Default'}</span>
       </div>
-      <input class="task-input" id="pw_${u.id}" type="text" placeholder="Naya password set karo" />
+      <input class="task-input" id="pw_${u.id}" type="text" placeholder="Set new password" />
       <button class="btn-save" style="padding:8px 16px;font-size:12px" onclick="setPassword('${u.id}')">💾 Set Password</button>
       <span class="saved-tag" id="pwtag_${u.id}" style="margin-left:8px">✓ Saved!</span>
     </div>`;
@@ -864,7 +864,7 @@ async function loadAdminPanel(){
 
 async function setPassword(userId){
   const val=document.getElementById(`pw_${userId}`).value.trim();
-  if(!val){alert("Password khali nahi ho sakta!");return;}
+  if(!val){alert("Password cannot be empty!");return;}
   const {error}=await sb.from("user_passwords").upsert({user_id:userId,password:val},{onConflict:"user_id"});
   const tag=document.getElementById(`pwtag_${userId}`);
   tag.style.color=error?"#f87171":"#16a34a";
@@ -915,7 +915,7 @@ async function loadExpenses(){
   <div class="summary-grid">
     <div class="summary-box" style="border:1px solid #f9731644">
       <div class="summary-val" style="color:#f97316">₹${totalExp.toLocaleString("en-IN")}</div>
-      <div class="summary-lbl">Total Kharcha</div>
+      <div class="summary-lbl">Total Expense</div>
     </div>
     <div class="summary-box" style="border:1px solid #16a34a44">
       <div class="summary-val" style="color:#4ade80">₹${totalAdv.toLocaleString("en-IN")}</div>
@@ -923,14 +923,14 @@ async function loadExpenses(){
     </div>
     <div class="summary-box" style="border:1px solid ${balance>=0?"#3b82f6":"#ef4444"}44">
       <div class="summary-val" style="color:${balance>=0?"#60a5fa":"#f87171"}">${balance>=0?"₹"+balance.toLocaleString("en-IN"):"−₹"+Math.abs(balance).toLocaleString("en-IN")}</div>
-      <div class="summary-lbl">${balance>=0?"Balance Remaining":"Baaki Dena Hai"}</div>
+      <div class="summary-lbl">${balance>=0?"Balance Remaining":"Balance Due"}</div>
     </div>
   </div>
 
   <!-- Add Expense Form (Piyush only) -->
   ${isPiyush||isAdmin?`
   <div class="exp-form">
-    <div style="font-size:14px;font-weight:700;margin-bottom:14px;color:#e5e7eb">➕ Naya Kharcha Add Karo</div>
+    <div style="font-size:14px;font-weight:700;margin-bottom:14px;color:#e5e7eb">➕ Add New Expense</div>
     <div class="exp-grid">
       <div>
         <label class="form-label">Amount (₹)</label>
@@ -961,10 +961,10 @@ async function loadExpenses(){
     </div>
     <div style="margin-bottom:14px">
       <label class="form-label">Description</label>
-      <input class="exp-input" id="expDesc" placeholder="Kya kharcha kiya — detail me likho" />
+      <input class="exp-input" id="expDesc" placeholder="What was the expense — describe in detail" />
     </div>
     <div style="display:flex;align-items:center;gap:12px">
-      <button class="btn-exp" onclick="addExpense()">💾 Add Kharcha</button>
+      <button class="btn-exp" onclick="addExpense()">💾 Add Expense</button>
       <span id="expTag" style="display:none;color:#4ade80;font-size:13px">✓ Saved!</span>
     </div>
   </div>`:""}
@@ -972,7 +972,7 @@ async function loadExpenses(){
   <!-- Add Advance Form (Admin only) -->
   ${isAdmin?`
   <div class="adv-form">
-    <div class="adv-form-title">💵 Advance Diya (Deep Sir → Piyush)</div>
+    <div class="adv-form-title">💵 Advance Given (Deep Sir → Piyush)</div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px">
       <div>
         <label class="form-label">Amount (₹)</label>
@@ -994,7 +994,7 @@ async function loadExpenses(){
   </div>`:""}
 
   <!-- Expenses List -->
-  <div style="font-size:14px;font-weight:700;margin-bottom:12px">📋 ${selMonth} — Kharche ki List</div>
+  <div style="font-size:14px;font-weight:700;margin-bottom:12px">📋 ${selMonth} — Expense List</div>
   ${monthExp.length?monthExp.map(e=>`
   <div class="exp-card">
     <div class="exp-amount">₹${(e.amount||0).toLocaleString("en-IN")}</div>
@@ -1002,7 +1002,7 @@ async function loadExpenses(){
     <div class="exp-desc">${escHtml(e.description||"")}</div>
     <div class="exp-date">📅 ${fmtDate(e.date)} ${e.added_by?`• ${e.added_by}`:""}</div>
     ${isAdmin?`<button class="exp-del" onclick="deleteExpense(${e.id})">🗑️</button>`:""}
-  </div>`).join(""):`<div class="no-data">📭 Is month me koi kharcha nahi add hua.</div>`}
+  </div>`).join(""):`<div class="no-data">📭 Is month me no expenses added.</div>`}
 
   <!-- Advances List -->
   ${allAdv.length?`<div style="font-size:14px;font-weight:700;margin:20px 0 12px">💵 Advance History</div>
@@ -1010,7 +1010,7 @@ async function loadExpenses(){
   <div class="exp-card" style="border:1px solid #16a34a33">
     <div class="exp-amount advance">₹${(a.amount||0).toLocaleString("en-IN")}</div>
     <span class="exp-cat" style="background:#0f1c14;color:#4ade80">Advance</span>
-    <div class="exp-desc">${escHtml(a.note||"Advance diya")}</div>
+    <div class="exp-desc">${escHtml(a.note||"Advance given")}</div>
     <div class="exp-date">📅 ${fmtDate(a.date)}</div>
     ${isAdmin?`<button class="exp-del" onclick="deleteAdvance(${a.id})">🗑️</button>`:""}
   </div>`).join("")}`:""}
@@ -1026,7 +1026,7 @@ async function markLogout(){
   const {error} = await sb.from("attendance").update({logout_time: logoutTime}).eq("employee_id", CU.id).eq("date", TKEY);
   
   if(!error){
-    alert(`✅ Logout time mark ho gaya: ${logoutTime} IST`);
+    alert(`✅ Logout time marked: ${logoutTime} IST`);
     loadAttendance();
   } else {
     alert("❌ Error! Try again.");
@@ -1047,9 +1047,9 @@ async function filterExpenses(month){
   const balance=totalAdv-totalExp;
   // Update summary
   document.querySelector(".summary-grid").innerHTML=`
-    <div class="summary-box" style="border:1px solid #f9731644"><div class="summary-val" style="color:#f97316">₹${totalExp.toLocaleString("en-IN")}</div><div class="summary-lbl">Total Kharcha</div></div>
+    <div class="summary-box" style="border:1px solid #f9731644"><div class="summary-val" style="color:#f97316">₹${totalExp.toLocaleString("en-IN")}</div><div class="summary-lbl">Total Expense</div></div>
     <div class="summary-box" style="border:1px solid #16a34a44"><div class="summary-val" style="color:#4ade80">₹${totalAdv.toLocaleString("en-IN")}</div><div class="summary-lbl">Total Advance</div></div>
-    <div class="summary-box" style="border:1px solid ${balance>=0?"#3b82f6":"#ef4444"}44"><div class="summary-val" style="color:${balance>=0?"#60a5fa":"#f87171"}">${balance>=0?"₹"+balance.toLocaleString("en-IN"):"−₹"+Math.abs(balance).toLocaleString("en-IN")}</div><div class="summary-lbl">${balance>=0?"Balance":"Baaki Dena Hai"}</div></div>`;
+    <div class="summary-box" style="border:1px solid ${balance>=0?"#3b82f6":"#ef4444"}44"><div class="summary-val" style="color:${balance>=0?"#60a5fa":"#f87171"}">${balance>=0?"₹"+balance.toLocaleString("en-IN"):"−₹"+Math.abs(balance).toLocaleString("en-IN")}</div><div class="summary-lbl">${balance>=0?"Balance":"Balance Due"}</div></div>`;
 }
 
 async function addExpense(){
@@ -1057,7 +1057,7 @@ async function addExpense(){
   const cat=document.getElementById("expCat").value.trim();
   const desc=document.getElementById("expDesc").value.trim();
   const date=document.getElementById("expDate").value;
-  if(!amt||!desc){alert("Amount aur description zaroori hai!");return;}
+  if(!amt||!desc){alert("Amount and description are required!");return;}
   const {error}=await sb.from("expenses").insert({
     amount:amt,category:cat||"Misc",description:desc,date:date,
     added_by:CU.name,employee_id:CU.id
@@ -1078,8 +1078,8 @@ async function addAdvance(){
   const amt=parseFloat(document.getElementById("advAmt").value);
   const date=document.getElementById("advDate").value;
   const note=document.getElementById("advNote").value.trim();
-  if(!amt){alert("Amount zaroori hai!");return;}
-  const {error}=await sb.from("advances").insert({amount:amt,date:date,note:note||"Advance diya"});
+  if(!amt){alert("Amount is required!");return;}
+  const {error}=await sb.from("advances").insert({amount:amt,date:date,note:note||"Advance given"});
   const tag=document.getElementById("advTag");
   tag.style.display="inline";
   tag.textContent=error?"❌ Error!":"✓ Saved!";
@@ -1092,13 +1092,13 @@ async function addAdvance(){
 }
 
 async function deleteExpense(id){
-  if(!confirm("Ye expense delete karna chahte ho?"))return;
+  if(!confirm("Do you want to delete this expense?"))return;
   await sb.from("expenses").delete().eq("id",id);
   loadExpenses();
 }
 
 async function deleteAdvance(id){
-  if(!confirm("Ye advance delete karna chahte ho?"))return;
+  if(!confirm("Do you want to delete this advance?"))return;
   await sb.from("advances").delete().eq("id",id);
   loadExpenses();
 }
@@ -1118,8 +1118,8 @@ async function loadHrExpenses(forceMonth){
   const isAdmin=CU.isAdmin;
 
   document.getElementById("mainContent").innerHTML=`
-  <div class="section-title">🧾 HR Kharcha — Lavista</div>
-  <div style="font-size:12px;color:#6b7280;margin-bottom:16px">Ye section sirf HR aur Deep Sir ko dikhta hai.</div>
+  <div class="section-title">🧾 HR Expenses — Lavista</div>
+  <div style="font-size:12px;color:#6b7280;margin-bottom:16px">This section is visible only to HR and Deep Sir.</div>
 
   <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
     <label class="form-label" style="margin:0">Month:</label>
@@ -1132,12 +1132,12 @@ async function loadHrExpenses(forceMonth){
   <div class="summary-grid">
     <div class="summary-box" style="border:1px solid #f9731644">
       <div class="summary-val" style="color:#f97316">₹${totalExp.toLocaleString("en-IN")}</div>
-      <div class="summary-lbl">Total HR Kharcha</div>
+      <div class="summary-lbl">Total HR Expense</div>
     </div>
   </div>
 
   <div class="exp-form">
-    <div style="font-size:14px;font-weight:700;margin-bottom:14px;color:#e5e7eb">➕ Naya Kharcha Add Karo</div>
+    <div style="font-size:14px;font-weight:700;margin-bottom:14px;color:#e5e7eb">➕ Add New Expense</div>
     <div class="exp-grid">
       <div>
         <label class="form-label">Amount (₹)</label>
@@ -1165,15 +1165,15 @@ async function loadHrExpenses(forceMonth){
     </div>
     <div style="margin-bottom:14px">
       <label class="form-label">Description</label>
-      <input class="exp-input" id="hrExpDesc" placeholder="Kya kharcha kiya — detail me likho" />
+      <input class="exp-input" id="hrExpDesc" placeholder="What was the expense — describe in detail" />
     </div>
     <div style="display:flex;align-items:center;gap:12px">
-      <button class="btn-exp" onclick="addHrExpense()">💾 Add Kharcha</button>
+      <button class="btn-exp" onclick="addHrExpense()">💾 Add Expense</button>
       <span id="hrExpTag" style="display:none;color:#4ade80;font-size:13px">✓ Saved!</span>
     </div>
   </div>
 
-  <div style="font-size:14px;font-weight:700;margin-bottom:12px">📋 ${selMonth} — Kharche ki List</div>
+  <div style="font-size:14px;font-weight:700;margin-bottom:12px">📋 ${selMonth} — Expense List</div>
   ${monthExp.length?monthExp.map(e=>`
   <div class="exp-card">
     <div class="exp-amount">₹${(e.amount||0).toLocaleString("en-IN")}</div>
@@ -1181,7 +1181,7 @@ async function loadHrExpenses(forceMonth){
     <div class="exp-desc">${escHtml(e.description||"")}</div>
     <div class="exp-date">📅 ${fmtDate(e.date)} ${e.added_by?`• ${e.added_by}`:""}</div>
     ${isAdmin?`<button class="exp-del" onclick="deleteHrExpense(${e.id})">🗑️</button>`:""}
-  </div>`).join(""):`<div class="no-data">📭 Is month me koi HR kharcha nahi add hua.</div>`}
+  </div>`).join(""):`<div class="no-data">📭 Is month me no HR expenses added.</div>`}
   `;
 }
 
@@ -1190,7 +1190,7 @@ async function addHrExpense(){
   const cat=document.getElementById("hrExpCat").value.trim();
   const desc=document.getElementById("hrExpDesc").value.trim();
   const date=document.getElementById("hrExpDate").value;
-  if(!amt||!desc){alert("Amount aur description zaroori hai!");return;}
+  if(!amt||!desc){alert("Amount and description are required!");return;}
   const {error}=await sb.from("hr_expenses").insert({
     amount:amt,category:cat||"Misc",description:desc,date:date,
     added_by:CU.name,employee_id:CU.id
@@ -1208,7 +1208,7 @@ async function addHrExpense(){
 }
 
 async function deleteHrExpense(id){
-  if(!confirm("Ye expense delete karna chahte ho?"))return;
+  if(!confirm("Do you want to delete this expense?"))return;
   await sb.from("hr_expenses").delete().eq("id",id);
   loadHrExpenses();
 }
@@ -1271,7 +1271,7 @@ async function loadAttendance() {
   const todayAtt = todayAttArr&&todayAttArr.length?todayAttArr[0]:null;
 
   // IMPORTANT: Agar aaj already mark ho gayi hai to KUCH NAHI KARO
-  // Sirf status dikhao — dobara mark mat karo
+  // Show status only — do not mark again
   let statusHtml = "";
   let actionHtml = "";
 
@@ -1306,7 +1306,7 @@ async function loadAttendance() {
       <button onclick="markLogout()" style="background:linear-gradient(135deg,#dc2626,#b91c1c);border:none;border-radius:12px;padding:14px 32px;color:#fff;font-size:15px;font-weight:700;cursor:pointer;width:100%;max-width:280px">
         🚪 Office Se Ja Raha/Rahi Hun
       </button>
-      <div style="color:#6b7280;font-size:12px;margin-top:8px">Office chodne se pehle click karo</div>
+      <div style="color:#6b7280;font-size:12px;margin-top:8px">Click before leaving the office</div>
     </div>` : `
     <div style="margin-top:12px;text-align:center;color:#6b7280;font-size:13px">
       🚪 Logout time: <b style="color:#fff">${todayAtt.logout_time}</b>
@@ -1318,12 +1318,12 @@ async function loadAttendance() {
     <div class="att-status-text" style="color:#f59e0b">Attendance Pending</div>
     <div class="att-status-sub">${TSTR} • Abhi: ${displayTime} IST</div>`;
     actionHtml = `
-    <div class="location-err" id="locErr">❌ Aap office se bahut door hain! Office aake attendance mark karo. (100-150m radius me hona zaroori hai)</div>
+    <div class="location-err" id="locErr">❌ You are too far from the office! Come to the office to mark attendance. (Must be within 100-150m radius)</div>
     <button class="btn-mark-present" id="markBtn" onclick="markAttendance()">
       📍 Office Se Attendance Mark Karo
     </button>
     <div style="color:#6b7280;font-size:12px;margin-top:10px">
-      ⚠️ Location verify hogi — sirf office ke andar se mark ho sakti hai
+      ⚠️ Location will be verified — can only be marked from inside the office
     </div>`;
   }
 
@@ -1338,7 +1338,7 @@ async function loadAttendance() {
   const halfCount = monthAtt.filter(a=>a.status==="halfday").length;
   const absentCount = monthAtt.filter(a=>a.status==="absent").length;
 
-  // Employee sirf apni attendance dekh sakta hai - no edit
+  // Employee can only view their own attendance - no edit
   document.getElementById("mainContent").innerHTML = `
   <div class="section-title">🕐 Attendance — ${CU.name}</div>
   <div class="att-card">
@@ -1372,7 +1372,7 @@ async function markAttendance() {
     
     if (dist > OFFICE_RADIUS) {
       errEl.classList.add("show");
-      errEl.textContent = `❌ Aap office se ${Math.round(dist)}m door hain! Office aake attendance mark karo. (${OFFICE_RADIUS}m radius me hona zaroori hai)`;
+      errEl.textContent = `❌ You are ${Math.round(dist)}m away from the office! Come to the office to mark attendance. (Must be within ${OFFICE_RADIUS}m radius)`;
       btn.disabled = false;
       btn.textContent = "📍 Office Se Attendance Mark Karo";
       return;
@@ -1405,7 +1405,7 @@ async function markAttendance() {
     }
   }, err => {
     errEl.classList.add("show");
-    errEl.textContent = "❌ Location access denied. Settings me GPS allow karo.";
+    errEl.textContent = "❌ Location access denied. Enable GPS in settings.";
     btn.disabled = false;
     btn.textContent = "📍 Office Se Attendance Mark Karo";
   }, {enableHighAccuracy: true, timeout: 10000});
@@ -1510,7 +1510,7 @@ async function autoMarkAbsent() {
   const members = USERS.filter(u=>!u.isAdmin);
   const now = new Date();
   if (now.getHours() < 12) {
-    alert("Auto-absent sirf dopahar 12 baje ke baad kar sakte ho.");
+    alert("Auto-absent can only be run after 12 PM.");
     return;
   }
   const isSunday = now.getDay() === 0;
@@ -1524,7 +1524,7 @@ async function autoMarkAbsent() {
     }
   }
   loadAttReport();
-  alert("✅ Jo log nahi aaye unhe absent/weekoff mark kar diya!");
+  alert("✅ Marked absent/week-off for everyone who did not come!");
 }
 </script>
 </body>
