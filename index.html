@@ -1001,7 +1001,7 @@ async function loadExpenses(){
     <span class="exp-cat">${escHtml(e.category||"Misc")}</span>
     <div class="exp-desc">${escHtml(e.description||"")}</div>
     <div class="exp-date">📅 ${fmtDate(e.date)} ${e.added_by?`• ${e.added_by}`:""}</div>
-    ${isAdmin?`<button class="exp-del" onclick="deleteExpense(${e.id})">🗑️</button>`:""}
+    ${(isAdmin||e.employee_id===CU.id)?`<button class="exp-del" onclick="deleteExpense(${e.id})">🗑️</button>`:""}
   </div>`).join(""):`<div class="no-data">📭 Is month me no expenses added.</div>`}
 
   <!-- Advances List -->
@@ -1180,7 +1180,7 @@ async function loadHrExpenses(forceMonth){
     <span class="exp-cat">${escHtml(e.category||"Misc")}</span>
     <div class="exp-desc">${escHtml(e.description||"")}</div>
     <div class="exp-date">📅 ${fmtDate(e.date)} ${e.added_by?`• ${e.added_by}`:""}</div>
-    ${isAdmin?`<button class="exp-del" onclick="deleteHrExpense(${e.id})">🗑️</button>`:""}
+    ${(isAdmin||e.employee_id===CU.id)?`<button class="exp-del" onclick="deleteHrExpense(${e.id})">🗑️</button>`:""}
   </div>`).join(""):`<div class="no-data">📭 Is month me no HR expenses added.</div>`}
   `;
 }
