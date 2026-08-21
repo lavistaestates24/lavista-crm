@@ -1325,8 +1325,8 @@ async function loadAdminData(date){
     return;
   }
 
-  const presentNames = (data || []).map(r => r.employee_name);
-  const absentEmployees = ACTIVE_EMPLOYEES.filter(e => !presentNames.includes(e.name));
+  const presentNames = (data || []).map(r => r.employee_name.trim().toLowerCase());
+  const absentEmployees = ACTIVE_EMPLOYEES.filter(e => !presentNames.includes(e.name.trim().toLowerCase()));
 
   let rows = (data || []).map(r=>{
     const late = isLatePunch(r.punch_in, r.employee_name);
@@ -1426,7 +1426,7 @@ async function loadMonthlySummary(monthStr){ // format: YYYY-MM
   const monthEnd = (monthStr === todayStr().slice(0,7)) ? todayStr() : end;
 
   let rows = ACTIVE_EMPLOYEES.map(emp=>{
-    const entries = (data || []).filter(r => r.employee_name === emp.name);
+    const entries = (data || []).filter(r => r.employee_name.trim().toLowerCase() === emp.name.trim().toLowerCase());
     const present = entries.filter(r => (r.day_status || computeDayStatus(r.punch_in)) === 'Present').length;
     const half = entries.filter(r => (r.day_status || computeDayStatus(r.punch_in)) === 'Half Day').length;
     const manualWeekOff = entries.filter(r => r.day_status === 'Week Off').length;
@@ -1506,13 +1506,13 @@ async function loadFullSheet(monthStr){
   }
 
   const byKey = {}; // "name|date" -> row
-  (data || []).forEach(r => byKey[r.employee_name + '|' + r.work_date] = r);
+  (data || []).forEach(r => byKey[r.employee_name.trim().toLowerCase() + '|' + r.work_date] = r);
 
   const rows = []; // flat list for both table + CSV
   ACTIVE_EMPLOYEES.forEach(emp=>{
     for(let d = 1; d <= endDayNum; d++){
       const dateStr = `${monthStr}-${pad(d)}`;
-      const r = byKey[emp.name + '|' + dateStr];
+      const r = byKey[emp.name.trim().toLowerCase() + '|' + dateStr];
       let status, hours = '', inT = '', outT = '', remarks = '';
 
       if(r && r.day_status === 'Week Off'){
