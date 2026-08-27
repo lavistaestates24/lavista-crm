@@ -546,16 +546,18 @@ const EMPLOYEES = [
   // us it's split roughly half-and-half. Wherever someone is actually 10:30-7,
   // change BOTH shiftStart to "10:30" AND shiftEnd to "19:00" for that person.
   { name: "Arti Manager", team: "Real Estate", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: null },
-  { name: "Nisha Mam",    team: "Real Estate", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: null },
-  { name: "Krutika",      team: "Real Estate", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: null },
-  { name: "Vaishali",     team: "Real Estate", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: null },
-  { name: "Anand Sir",    team: "Real Estate", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: null },
-  { name: "Harsh",        team: "Real Estate", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: null },
-  { name: "Ashit",        team: "Real Estate", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: null },
-  { name: "Krunal",       team: "Real Estate", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: null },
-  { name: "Anirudhsinh",  team: "Real Estate", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: null },
-  { name: "Devrajsinh",   team: "Real Estate", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: null }
+  { name: "Nisha Mam",    team: "Real Estate", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: null, personalOffDay: "Wednesday" },
+  { name: "Krutika",      team: "Real Estate", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: null, personalOffDay: "Monday" },
+  { name: "Vaishali",     team: "Real Estate", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: null, personalOffDay: "Wednesday" },
+  { name: "Anand Sir",    team: "Real Estate", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: null, personalOffDay: "Monday" },
+  { name: "Harsh",        team: "Real Estate", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: null, personalOffDay: "Wednesday" },
+  { name: "Ashit",        team: "Real Estate", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: null, personalOffDay: "Wednesday" },
+  { name: "Krunal",       team: "Real Estate", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: null, personalOffDay: "Monday" },
+  { name: "Anirudhsinh",  team: "Real Estate", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: null, personalOffDay: "Monday" },
+  { name: "Devrajsinh",   team: "Real Estate", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: null, personalOffDay: "Wednesday" }
   // add more employees here, same format
+  // personalOffDay: employees with a FIXED individual weekly off get a Yes/No prompt
+  // right after punching out the day before, asking to confirm tomorrow's week off.
   // PIN fallback (for broken fingerprint sensors) is no longer set here in code —
   // Deep Sir sets/removes it from the Admin view directly (Supabase table: employee_pins).
 ];
@@ -1156,9 +1158,34 @@ btnOut.addEventListener('click', async ()=>{
     msgBox.textContent = 'Punched out. See you tomorrow!';
     msgBox.className = 'msg ok';
     showStamp('Punched Out');
+    await maybeConfirmTomorrowOff(name);
     refreshStatus();
   }
 });
+
+async function maybeConfirmTomorrowOff(name){
+  const emp = getEmployee(name);
+  if(!emp || !emp.personalOffDay) return;
+
+  const t = new Date();
+  t.setDate(t.getDate() + 1);
+  const tomorrowStr = `${t.getFullYear()}-${pad(t.getMonth()+1)}-${pad(t.getDate())}`;
+  const tomorrowWeekday = weekdayNameOf(tomorrowStr);
+
+  if(tomorrowWeekday !== emp.personalOffDay) return;
+
+  const ok = confirm(`Tomorrow (${tomorrowWeekday}) is your usual week off. Mark it as Week Off?`);
+  if(!ok) return;
+
+  const { error } = await sb.from('hr_punch_log')
+    .upsert({ employee_name: name, work_date: tomorrowStr, day_status: 'Week Off' },
+             { onConflict: 'employee_name,work_date' });
+
+  if(!error){
+    msgBox.textContent = `Marked tomorrow (${tomorrowWeekday}) as your Week Off.`;
+    msgBox.className = 'msg ok';
+  }
+}
 
 // ---------- admin view ----------
 const kioskWrap = document.getElementById('kioskWrap');
