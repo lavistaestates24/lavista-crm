@@ -109,6 +109,7 @@
   <button class="tab-btn" data-tab="calendar">Content Calendar</button>
   <button class="tab-btn" data-tab="roadmap">Build Roadmap</button>
   <button class="tab-btn" data-tab="ai">AI Assistant</button>
+  <button class="tab-btn" data-tab="content">Content Upload</button>
 </nav>
 
 <main>
@@ -186,7 +187,42 @@
       </div>
     </div>
   </div>
+<!-- CONTENT UPLOAD -->
+<div class="tab-panel" id="tab-content" style="display:none">
+  <div class="card">
+    <div class="section-title">Naya Content Upload Karo</div>
+    <div class="section-sub">Photo/video daalo + property details bharo — AI khud caption, hashtags aur keywords bana dega. Approve karne ke baad ye calendar ke hisab se auto-publish ho jayega.</div>
+    <div class="row">
+      <div class="field" style="max-width:220px">
+        <label>Client</label>
+        <select id="cu_client"></select>
+      </div>
+      <div class="field" style="max-width:160px">
+        <label>Type</label>
+        <select id="cu_type">
+          <option value="image">Photo / Post</option>
+          <option value="video">Reel / Video</option>
+        </select>
+      </div>
+      <div class="field"><label>Media File</label><input id="cu_file" type="file" accept="image/*,video/*"></div>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <div class="field"><label>Property Name</label><input id="cu_name" placeholder="e.g. 3BHK Skyline Residency"></div>
+      <div class="field"><label>Price</label><input id="cu_price" placeholder="e.g. ₹65 Lakh onwards"></div>
+      <div class="field"><label>Location</label><input id="cu_location" placeholder="e.g. Bopal, Ahmedabad"></div>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <div class="field"><label>Key Features (comma separated)</label><input id="cu_features" placeholder="e.g. Rooftop pool, 3 BHK, Gated society, Near SG Highway"></div>
+    </div>
+    <button class="btn btn-gold" style="margin-top:14px" onclick="uploadContent()">Upload & Generate Caption</button>
+    <div id="cu_status" style="margin-top:10px; font-size:13px;"></div>
+  </div>
 
+  <div class="card">
+    <div class="section-title">Content Queue</div>
+    <div id="contentQueueList"></div>
+  </div>
+</div>
   <!-- ROADMAP -->
   <div class="tab-panel" id="tab-roadmap" style="display:none">
     <div class="card">
@@ -525,6 +561,8 @@ async function renderAll(){
   renderClientSelect();
   renderCalendar();
   await renderIntegrations();
+  populateClientDropdown();
+  renderContentQueue();
 }
 
 function renderStats(){
@@ -606,8 +644,94 @@ function renderCalendar(){
 }
 
 checkSession();
+  // ============ CONTENT UPLOAD ============
+function populateClientDropdown(){
+  const sel = document.getElementById('cu_client');
+  if(!sel) return;
+  sel.innerHTML = DB.clients.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+}
+
+async function uploadContent(){
+  const statusEl = document.getElementById('cu_status');
+  const fileInput = document.getElementById('cu_file');
+  const clientId = document.getElementById('cu_client').value;
+  const type = document.getElementById('cu_type').value;
+  const name = document.getElementById('cu_name').value.trim();
+  const price = document.getElementById('cu_price').value.trim();
+  const location = document.getElementById('cu_location').value.trim();
+  const features = document.getElementById('cu_features').value.trim();
+
+  if(!fileInput.files[0]){ statusEl.textContent = 'Pehle file select karo.'; statusEl.style.color='var(--red)'; return; }
+  if(!clientId){ statusEl.textContent = 'Client select karo.'; statusEl.style.color='var(--red)'; return; }
+
+  statusEl.style.color = 'var(--muted)';
+  statusEl.innerHTML = '<span class="spinner"></span> Uploading...';
+
+  try{
+    const file = fileInput.files[0];
+    const filePath = `${clientId}/${Date.now()}_${file.name}`;
+    const { error: uploadError } = await supa.storage.from('client-content').upload(filePath, file);
+    if(uploadError) throw new Error('Upload fail: ' + uploadError.message);
+
+    const { data: urlData } = supa.storage.from('client-content').getPublicUrl(filePath);
+    const mediaUrl = urlData.publicUrl;
+
+    statusEl.innerHTML = '<span class="spinner"></span> AI caption bana raha hai...';
+
+    const { data: row, error: insertError } = await supa.from('content_queue').insert({
+      client_id: clientId,
+      media_url: mediaUrl,
+      media_type: type,
+      property_name: name,
+      price: price,
+      location: location,
+      features: features,
+      status: 'draft'
+    }).select().single();
+    if(insertError) throw new Error('Save fail: ' + insertError.message);
+
+    // Call caption generator Edge Function (Phase 3 mein banayenge)
+    const { data: { session } } = await supa.auth.getSession();
+    const res = await fetch(`${CONFIG.SUPABASE_URL}/functions/v1/generate-caption`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json', 'Authorization': `Bearer ${session?.access_token || CONFIG.SUPABASE_ANON_KEY}`},
+      body: JSON.stringify({ contentId: row.id })
+    });
+    const result = await res.json();
+    if(!res.ok) throw new Error(result.error || 'Caption generation fail hui');
+
+    statusEl.style.color = 'var(--green)';
+    statusEl.textContent = 'Upload ho gaya! Caption ban chuka hai — neeche Content Queue mein check karo.';
+    ['cu_name','cu_price','cu_location','cu_features'].forEach(id=>document.getElementById(id).value='');
+    fileInput.value='';
+    renderContentQueue();
+  }catch(err){
+    statusEl.style.color = 'var(--red)';
+    statusEl.textContent = 'Error: ' + err.message;
+  }
+}
+
+async function renderContentQueue(){
+  const wrap = document.getElementById('contentQueueList');
+  if(!wrap || !supa) return;
+  const { data, error } = await supa.from('content_queue').select('*').order('created_at', {ascending:false}).limit(20);
+  if(error){ wrap.innerHTML = `<div class="empty">Load karne mein error: ${error.message}</div>`; return; }
+  if(!data || data.length===0){ wrap.innerHTML = `<div class="empty"><b>Abhi koi content upload nahi hua</b></div>`; return; }
+  wrap.innerHTML = data.map(item=>`
+    <div class="card" style="margin-bottom:10px">
+      <div style="display:flex; gap:14px;">
+        <div style="flex:1"><b>${item.property_name||'(no name)'}</b> · ${item.location||''}<br>
+        <span class="pill ${item.status==='ready'?'pill-active':item.status==='published'?'pill-done':'pill-pending'}">${item.status}</span></div>
+      </div>
+      <div style="margin-top:8px; font-size:13px; white-space:pre-wrap;">${item.caption || '<span style="color:var(--muted)">Caption generate ho raha hai...</span>'}</div>
+      <div style="margin-top:6px; font-size:12px; color:var(--muted)">${item.hashtags||''}</div>
+    </div>
+  `).join('');
+}
+checkSession();
 handleOAuthReturn();
 renderAll();
+  
 </script>
 </body>
 </html>
