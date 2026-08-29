@@ -322,15 +322,21 @@ async function handleOAuthReturn(){
   renderIntegrations();
 }
 
-function renderIntegrations(){
+async function renderIntegrations(){
   const wrap = document.getElementById('integrationsList');
   if(!wrap) return;
   if(DB.clients.length===0){ wrap.innerHTML = `<div class="empty"><b>Pehle Clients tab se client add karo</b></div>`; return; }
+  let liveConnections = {};
+  if(supa){
+    const { data, error } = await supa.from('meta_connections').select('client_id, ig_username');
+    if(!error && data){ data.forEach(row => { liveConnections[row.client_id] = row.ig_username; }); }
+  }
   wrap.innerHTML = DB.clients.map(c=>{
-    const connected = c.igConnected; // populated after backend confirms — placeholder flag for now
+    const igUsername = liveConnections[c.id];
+    const connected = !!igUsername;
     return `<div class="row" style="align-items:center; padding:12px 0; border-bottom:1px solid var(--line)">
       <div style="flex:2"><b>${c.name}</b></div>
-      <div style="flex:1">${connected ? `<span class="pill pill-active">Connected · @${c.igUsername||''}</span>` : `<span class="pill pill-pending">Not connected</span>`}</div>
+      <div style="flex:1">${connected ? `<span class="pill pill-active">Connected · @${igUsername}</span>` : `<span class="pill pill-pending">Not connected</span>`}</div>
       <button class="btn btn-sm ${connected?'btn-outline':'btn-gold'}" onclick="connectMeta('${c.id}')">${connected?'Reconnect':'Connect Instagram/Facebook'}</button>
     </div>`;
   }).join('');
@@ -513,12 +519,12 @@ function packageStatus(client){
   return {label:'Active', cls:'pill-active'};
 }
 
-function renderAll(){
+async function renderAll(){
   renderStats();
   renderClients();
   renderClientSelect();
   renderCalendar();
-  renderIntegrations();
+  await renderIntegrations();
 }
 
 function renderStats(){
