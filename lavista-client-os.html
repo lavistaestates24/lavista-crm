@@ -557,7 +557,7 @@ async function renderContentQueue(){
     const mediaPreview = item.media_type === 'video'
       ? `<video src="${item.media_url}" controls style="width:100%; max-width:220px; border-radius:8px; display:block;"></video>`
       : `<img src="${item.media_url}" style="width:100%; max-width:220px; border-radius:8px; display:block; object-fit:cover;">`;
-    return `
+       return `
     <div class="card" style="margin-bottom:10px">
       <div style="display:flex; gap:16px; flex-wrap:wrap;">
         <div style="flex-shrink:0;">${mediaPreview}</div>
@@ -566,12 +566,28 @@ async function renderContentQueue(){
           <span class="pill ${item.status==='ready'?'pill-active':item.status==='published'?'pill-done':'pill-pending'}">${item.status}</span>
           <div style="margin-top:8px; font-size:13px; white-space:pre-wrap;">${item.caption || '<span style="color:var(--muted)">No caption yet</span>'}</div>
           <div style="margin-top:6px; font-size:12px; color:var(--muted)">${item.hashtags||''}</div>
+          <button class="close-x" style="margin-top:8px;" onclick="deleteContentItem('${item.id}', '${item.media_url}')">✕ Delete</button>
         </div>
       </div>
     </div>`;
   }).join('');
 }
 
+  async function deleteContentItem(id, mediaUrl){
+  if(!confirm('Ye content permanently delete karna hai (image/video bhi)?')) return;
+  try{
+    const urlParts = mediaUrl.split('/client-content/');
+    const filePath = urlParts[1];
+    if(filePath){
+      await supa.storage.from('client-content').remove([filePath]);
+    }
+    const { error } = await supa.from('content_queue').delete().eq('id', id);
+    if(error){ alert('Delete fail: ' + error.message); return; }
+    renderContentQueue();
+  }catch(err){
+    alert('Error: ' + err.message);
+  }
+}
 const STORE_KEY = 'lavista_client_os_v1';
 let DB = JSON.parse(localStorage.getItem(STORE_KEY) || '{"clients":[],"calendar":[]}');
 
@@ -765,3 +781,5 @@ checkSession();
 handleOAuthReturn();
 renderAll();
 </script>
+</body>
+</html>
