@@ -214,6 +214,10 @@
     </div>
     <div class="row" style="margin-top:10px">
       <div class="field"><label>Key Features (comma separated)</label><input id="cu_features" placeholder="e.g. Rooftop pool, 3 BHK, Gated society, Near SG Highway"></div>
+      <div class="row" style="margin-top:10px">
+  <div class="field"><label>Caption</label><input id="cu_caption" placeholder="Apna caption yahan likho"></div>
+  <div class="field"><label>Hashtags</label><input id="cu_hashtags" placeholder="#realestate #ahmedabad ..."></div>
+</div>
     </div>
     <button class="btn btn-gold" style="margin-top:14px" onclick="uploadContent()">Upload & Generate Caption</button>
     <div id="cu_status" style="margin-top:10px; font-size:13px;"></div>
@@ -283,7 +287,7 @@
 const CONFIG = {
   SUPABASE_URL: 'https://dfduzpsnzruzsdjipgww.supabase.co',
   SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZHV6cHNuenJ1enNkamlwZ3d3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyMTA3NTEsImV4cCI6MjA5Nzc4Njc1MX0.5jIgdYKzFGRDZ2wfrn290zkSPumhs1goC1ekhWdO68I',
-  INSTAGRAM_APP_ID:  '1038301478818658',   // separate from the main Meta App ID — found under Instagram > API setup
+  INSTAGRAM_APP_ID:  '1038301478818658',
   REDIRECT_URI: window.location.origin + window.location.pathname
 };
 const CONFIGURED = !CONFIG.SUPABASE_URL.includes('YOUR-') && !CONFIG.INSTAGRAM_APP_ID.includes('YOUR-');
@@ -320,7 +324,7 @@ async function doSignup(){
   document.getElementById('loginMsg').textContent = 'Account bana. Ab login karo (agar email confirmation on hai to pehle mail check karo).';
 }
 async function checkSession(){
-  if(!supa){ return; } // stays on login gate with the config warning
+  if(!supa){ return; }
   try{
     const {data:{session}} = await supa.auth.getSession();
     if(session){ document.getElementById('loginGate').classList.remove('show'); }
@@ -345,7 +349,7 @@ async function handleOAuthReturn(){
   const code = params.get('code');
   const clientId = params.get('state');
   if(!code || !clientId) return;
-  window.history.replaceState({}, '', window.location.pathname); // clean URL
+  window.history.replaceState({}, '', window.location.pathname);
   if(!supa){ alert('Connected, but CONFIG not set so it cannot be saved yet.'); return; }
   const {data:{session}} = await supa.auth.getSession();
   const res = await fetch(`${CONFIG.SUPABASE_URL}/functions/v1/exchange-meta-token`, {
@@ -379,7 +383,7 @@ async function renderIntegrations(){
   }).join('');
 }
 
-// ============ RELIABILITY HELPERS (prevent hangs, show clear errors) ============
+// ============ RELIABILITY HELPERS ============
 function showToast(msg, isError){
   const t = document.createElement('div');
   t.className = 'toast';
@@ -452,6 +456,122 @@ async function askAI(){
   }
 }
 
+// ============ CONTENT UPLOAD (manual caption — no AI call) ============
+function populateClientDropdown(){
+  const sel = document.getElementById('cu_client');
+  if(!sel) return;
+  sel.innerHTML = DB.clients.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+}
+
+async function uploadContent(){
+  const statusEl = document.getElementById('cu_status');
+  const fileInput = document.getElementById('cu_file');
+  const clientId = document.getElementById('cu_client').value;
+  const type = document.getElementById('cu_type').value;
+  const name = document.getElementById('cu_name').value.trim();
+  const price = document.getElementById('cu_price').value.trim();
+  const location = document.getElementById('cu_location').value.trim();
+  const features = document.getElementById('cu_features').value.trim();
+  const caption = document.getElementById('cu_caption').value.trim();
+  const hashtags = document.getElementById('cu_hashtags').value.trim();
+
+  if(!fileInput.files[0]){ statusEl.textContent = 'Pehle file select karo.'; statusEl.style.color='var(--red)'; return; }
+  if(!clientId){ statusEl.textContent = 'Client select karo.'; statusEl.style.color='var(--red)'; return; }
+
+  const file = fileInput.files[0];
+  const filePath = `${clientId}/${Date.now()}_${file.name}`;
+  const { data: { session } } = await supa.auth.getSession();
+
+  statusEl.style.color = 'var(--muted)';
+  statusEl.innerHTML = '<span class="spinner"></span> Uploading... 0%';
+
+  try{
+    await new Promise((resolve, reject) => {
+      const upload = new tus.Upload(file, {
+        endpoint: `${CONFIG.SUPABASE_URL}/storage/v1/upload/resumable`,
+        retryDelays: [0, 3000, 5000, 10000, 20000],
+        headers: {
+          authorization: `Bearer ${session?.access_token || CONFIG.SUPABASE_ANON_KEY}`,
+          'x-upsert': 'true',
+        },
+        uploadDataDuringCreation: true,
+        removeFingerprintOnSuccess: true,
+        metadata: {
+          bucketName: 'client-content',
+          objectName: filePath,
+          contentType: file.type,
+          cacheControl: '3600',
+        },
+        chunkSize: 6 * 1024 * 1024,
+        onError: (error) => reject(error),
+        onProgress: (bytesUploaded, bytesTotal) => {
+          const pct = ((bytesUploaded / bytesTotal) * 100).toFixed(0);
+          statusEl.innerHTML = `<span class="spinner"></span> Uploading... ${pct}%`;
+        },
+        onSuccess: () => resolve(),
+      });
+
+      upload.findPreviousUploads().then((previousUploads) => {
+        if (previousUploads.length) upload.resumeFromPreviousUpload(previousUploads[0]);
+        upload.start();
+      });
+    });
+
+    const { data: urlData } = supa.storage.from('client-content').getPublicUrl(filePath);
+    const mediaUrl = urlData.publicUrl;
+
+    statusEl.innerHTML = '<span class="spinner"></span> Saving...';
+
+    const { error: insertError } = await supa.from('content_queue').insert({
+      client_id: clientId,
+      media_url: mediaUrl,
+      media_type: type,
+      property_name: name,
+      price: price,
+      location: location,
+      features: features,
+      caption: caption,
+      hashtags: hashtags,
+      status: 'ready'
+    });
+    if(insertError) throw new Error('Save fail: ' + insertError.message);
+
+    statusEl.style.color = 'var(--green)';
+    statusEl.textContent = 'Upload ho gaya! Content Queue mein check karo.';
+    ['cu_name','cu_price','cu_location','cu_features','cu_caption','cu_hashtags'].forEach(id=>document.getElementById(id).value='');
+    fileInput.value='';
+    renderContentQueue();
+  }catch(err){
+    statusEl.style.color = 'var(--red)';
+    statusEl.textContent = 'Error: ' + (err.message || err);
+  }
+}
+
+async function renderContentQueue(){
+  const wrap = document.getElementById('contentQueueList');
+  if(!wrap || !supa) return;
+  const { data, error } = await supa.from('content_queue').select('*').order('created_at', {ascending:false}).limit(20);
+  if(error){ wrap.innerHTML = `<div class="empty">Load karne mein error: ${error.message}</div>`; return; }
+  if(!data || data.length===0){ wrap.innerHTML = `<div class="empty"><b>Abhi koi content upload nahi hua</b></div>`; return; }
+  wrap.innerHTML = data.map(item=>{
+    const mediaPreview = item.media_type === 'video'
+      ? `<video src="${item.media_url}" controls style="width:100%; max-width:220px; border-radius:8px; display:block;"></video>`
+      : `<img src="${item.media_url}" style="width:100%; max-width:220px; border-radius:8px; display:block; object-fit:cover;">`;
+    return `
+    <div class="card" style="margin-bottom:10px">
+      <div style="display:flex; gap:16px; flex-wrap:wrap;">
+        <div style="flex-shrink:0;">${mediaPreview}</div>
+        <div style="flex:1; min-width:200px;">
+          <b>${item.property_name||'(no name)'}</b> · ${item.location||''} · ${item.price||''}<br>
+          <span class="pill ${item.status==='ready'?'pill-active':item.status==='published'?'pill-done':'pill-pending'}">${item.status}</span>
+          <div style="margin-top:8px; font-size:13px; white-space:pre-wrap;">${item.caption || '<span style="color:var(--muted)">No caption yet</span>'}</div>
+          <div style="margin-top:6px; font-size:12px; color:var(--muted)">${item.hashtags||''}</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
 const STORE_KEY = 'lavista_client_os_v1';
 let DB = JSON.parse(localStorage.getItem(STORE_KEY) || '{"clients":[],"calendar":[]}');
 
@@ -469,9 +589,8 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
 
 document.getElementById('dateNow').textContent = new Date().toLocaleDateString('en-IN',{weekday:'long', year:'numeric', month:'long', day:'numeric'});
 
-// ---- Best time logic (simple heuristic, swap with Windsor.ai data later) ----
 function bestTimeFor(dateObj, type){
-  const day = dateObj.getDay(); // 0 Sun .. 6 Sat
+  const day = dateObj.getDay();
   if(type==='reel'){
     return (day===0||day===6) ? '11:00 AM' : '8:00 PM';
   }
@@ -503,10 +622,8 @@ function generateCalendarForClient(clientId){
   const client = DB.clients.find(c=>c.id===clientId);
   if(!client) return;
   const start = new Date(client.start);
-  const totalDays = client.months*30;
   for(let m=0; m<client.months; m++){
     const monthStart = new Date(start); monthStart.setDate(monthStart.getDate()+m*30);
-    // spread posts evenly across 30 days
     if(client.posts>0){
       const gap = 30/client.posts;
       for(let i=0;i<client.posts;i++){
@@ -645,130 +762,6 @@ function renderCalendar(){
 }
 
 checkSession();
-  // ============ CONTENT UPLOAD ============
-function populateClientDropdown(){
-  const sel = document.getElementById('cu_client');
-  if(!sel) return;
-  sel.innerHTML = DB.clients.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
-}
-
-async function uploadContent(){
-  const statusEl = document.getElementById('cu_status');
-  const fileInput = document.getElementById('cu_file');
-  const clientId = document.getElementById('cu_client').value;
-  const type = document.getElementById('cu_type').value;
-  const name = document.getElementById('cu_name').value.trim();
-  const price = document.getElementById('cu_price').value.trim();
-  const location = document.getElementById('cu_location').value.trim();
-  const features = document.getElementById('cu_features').value.trim();
-
-  if(!fileInput.files[0]){ statusEl.textContent = 'Pehle file select karo.'; statusEl.style.color='var(--red)'; return; }
-  if(!clientId){ statusEl.textContent = 'Client select karo.'; statusEl.style.color='var(--red)'; return; }
-
-  const file = fileInput.files[0];
-  const filePath = `${clientId}/${Date.now()}_${file.name}`;
-  const { data: { session } } = await supa.auth.getSession();
-
-  statusEl.style.color = 'var(--muted)';
-  statusEl.innerHTML = '<span class="spinner"></span> Uploading... 0%';
-
-  try{
-    await new Promise((resolve, reject) => {
-      const upload = new tus.Upload(file, {
-        endpoint: `${CONFIG.SUPABASE_URL}/storage/v1/upload/resumable`,
-        retryDelays: [0, 3000, 5000, 10000, 20000],
-        headers: {
-          authorization: `Bearer ${session?.access_token || CONFIG.SUPABASE_ANON_KEY}`,
-          'x-upsert': 'true',
-        },
-        uploadDataDuringCreation: true,
-        removeFingerprintOnSuccess: true,
-        metadata: {
-          bucketName: 'client-content',
-          objectName: filePath,
-          contentType: file.type,
-          cacheControl: '3600',
-        },
-        chunkSize: 6 * 1024 * 1024, // 6MB — Supabase ka required chunk size
-        onError: (error) => reject(error),
-        onProgress: (bytesUploaded, bytesTotal) => {
-          const pct = ((bytesUploaded / bytesTotal) * 100).toFixed(0);
-          statusEl.innerHTML = `<span class="spinner"></span> Uploading... ${pct}%`;
-        },
-        onSuccess: () => resolve(),
-      });
-
-      // Resume if a previous attempt was interrupted
-      upload.findPreviousUploads().then((previousUploads) => {
-        if (previousUploads.length) upload.resumeFromPreviousUpload(previousUploads[0]);
-        upload.start();
-      });
-    });
-
-    const { data: urlData } = supa.storage.from('client-content').getPublicUrl(filePath);
-    const mediaUrl = urlData.publicUrl;
-
-    statusEl.innerHTML = '<span class="spinner"></span> AI caption bana raha hai...';
-
-    const { data: row, error: insertError } = await supa.from('content_queue').insert({
-      client_id: clientId,
-      media_url: mediaUrl,
-      media_type: type,
-      property_name: name,
-      price: price,
-      location: location,
-      features: features,
-      status: 'draft'
-    }).select().single();
-    if(insertError) throw new Error('Save fail: ' + insertError.message);
-
-    const res = await fetch(`${CONFIG.SUPABASE_URL}/functions/v1/generate-caption`, {
-      method: 'POST',
-      headers: {'Content-Type':'application/json', 'Authorization': `Bearer ${session?.access_token || CONFIG.SUPABASE_ANON_KEY}`},
-      body: JSON.stringify({ contentId: row.id })
-    });
-    const result = await res.json();
-    if(!res.ok) throw new Error(result.error || 'Caption generation fail hui');
-
-    statusEl.style.color = 'var(--green)';
-    statusEl.textContent = 'Upload ho gaya! Caption ban chuka hai — neeche Content Queue mein check karo.';
-    ['cu_name','cu_price','cu_location','cu_features'].forEach(id=>document.getElementById(id).value='');
-    fileInput.value='';
-    renderContentQueue();
-  }catch(err){
-    statusEl.style.color = 'var(--red)';
-    statusEl.textContent = 'Error: ' + (err.message || err);
-  }
-}
-
-async function renderContentQueue(){
-  const wrap = document.getElementById('contentQueueList');
-  if(!wrap || !supa) return;
-  const { data, error } = await supa.from('content_queue').select('*').order('created_at', {ascending:false}).limit(20);
-  if(error){ wrap.innerHTML = `<div class="empty">Load karne mein error: ${error.message}</div>`; return; }
-  if(!data || data.length===0){ wrap.innerHTML = `<div class="empty"><b>Abhi koi content upload nahi hua</b></div>`; return; }
-  wrap.innerHTML = data.map(item=>{
-    const mediaPreview = item.media_type === 'video'
-      ? `<video src="${item.media_url}" controls style="width:100%; max-width:220px; border-radius:8px; display:block;"></video>`
-      : `<img src="${item.media_url}" style="width:100%; max-width:220px; border-radius:8px; display:block; object-fit:cover;">`;
-    return `
-    <div class="card" style="margin-bottom:10px">
-      <div style="display:flex; gap:16px; flex-wrap:wrap;">
-        <div style="flex-shrink:0;">${mediaPreview}</div>
-        <div style="flex:1; min-width:200px;">
-          <b>${item.property_name||'(no name)'}</b> · ${item.location||''} · ${item.price||''}<br>
-          <span class="pill ${item.status==='ready'?'pill-active':item.status==='published'?'pill-done':'pill-pending'}">${item.status}</span>
-          <div style="margin-top:8px; font-size:13px; white-space:pre-wrap;">${item.caption || '<span style="color:var(--muted)">Caption generate ho raha hai...</span>'}</div>
-          <div style="margin-top:6px; font-size:12px; color:var(--muted)">${item.hashtags||''}</div>
-        </div>
-      </div>
-    </div>`;
-  }).join('');
-}
-checkSession();
 handleOAuthReturn();
 renderAll();
-  
 </script>
-</body>
-</html>
