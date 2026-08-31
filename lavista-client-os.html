@@ -5,6 +5,7 @@
 <title>Lavista Client OS — Phase 1</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/tus-js-client@4/dist/tus.min.js"></script>
 <style>
   :root{
     --brown:#2b1d14; --brown2:#3d2a1c; --gold:#c9a24a; --gold-soft:#e8cf94;
@@ -664,14 +665,45 @@ async function uploadContent(){
   if(!fileInput.files[0]){ statusEl.textContent = 'Pehle file select karo.'; statusEl.style.color='var(--red)'; return; }
   if(!clientId){ statusEl.textContent = 'Client select karo.'; statusEl.style.color='var(--red)'; return; }
 
+  const file = fileInput.files[0];
+  const filePath = `${clientId}/${Date.now()}_${file.name}`;
+  const { data: { session } } = await supa.auth.getSession();
+
   statusEl.style.color = 'var(--muted)';
-  statusEl.innerHTML = '<span class="spinner"></span> Uploading...';
+  statusEl.innerHTML = '<span class="spinner"></span> Uploading... 0%';
 
   try{
-    const file = fileInput.files[0];
-    const filePath = `${clientId}/${Date.now()}_${file.name}`;
-    const { error: uploadError } = await supa.storage.from('client-content').upload(filePath, file);
-    if(uploadError) throw new Error('Upload fail: ' + uploadError.message);
+    await new Promise((resolve, reject) => {
+      const upload = new tus.Upload(file, {
+        endpoint: `${CONFIG.SUPABASE_URL}/storage/v1/upload/resumable`,
+        retryDelays: [0, 3000, 5000, 10000, 20000],
+        headers: {
+          authorization: `Bearer ${session?.access_token || CONFIG.SUPABASE_ANON_KEY}`,
+          'x-upsert': 'true',
+        },
+        uploadDataDuringCreation: true,
+        removeFingerprintOnSuccess: true,
+        metadata: {
+          bucketName: 'client-content',
+          objectName: filePath,
+          contentType: file.type,
+          cacheControl: '3600',
+        },
+        chunkSize: 6 * 1024 * 1024, // 6MB — Supabase ka required chunk size
+        onError: (error) => reject(error),
+        onProgress: (bytesUploaded, bytesTotal) => {
+          const pct = ((bytesUploaded / bytesTotal) * 100).toFixed(0);
+          statusEl.innerHTML = `<span class="spinner"></span> Uploading... ${pct}%`;
+        },
+        onSuccess: () => resolve(),
+      });
+
+      // Resume if a previous attempt was interrupted
+      upload.findPreviousUploads().then((previousUploads) => {
+        if (previousUploads.length) upload.resumeFromPreviousUpload(previousUploads[0]);
+        upload.start();
+      });
+    });
 
     const { data: urlData } = supa.storage.from('client-content').getPublicUrl(filePath);
     const mediaUrl = urlData.publicUrl;
@@ -690,8 +722,6 @@ async function uploadContent(){
     }).select().single();
     if(insertError) throw new Error('Save fail: ' + insertError.message);
 
-    // Call caption generator Edge Function (Phase 3 mein banayenge)
-    const { data: { session } } = await supa.auth.getSession();
     const res = await fetch(`${CONFIG.SUPABASE_URL}/functions/v1/generate-caption`, {
       method: 'POST',
       headers: {'Content-Type':'application/json', 'Authorization': `Bearer ${session?.access_token || CONFIG.SUPABASE_ANON_KEY}`},
@@ -707,7 +737,7 @@ async function uploadContent(){
     renderContentQueue();
   }catch(err){
     statusEl.style.color = 'var(--red)';
-    statusEl.textContent = 'Error: ' + err.message;
+    statusEl.textContent = 'Error: ' + (err.message || err);
   }
 }
 
@@ -717,16 +747,23 @@ async function renderContentQueue(){
   const { data, error } = await supa.from('content_queue').select('*').order('created_at', {ascending:false}).limit(20);
   if(error){ wrap.innerHTML = `<div class="empty">Load karne mein error: ${error.message}</div>`; return; }
   if(!data || data.length===0){ wrap.innerHTML = `<div class="empty"><b>Abhi koi content upload nahi hua</b></div>`; return; }
-  wrap.innerHTML = data.map(item=>`
+  wrap.innerHTML = data.map(item=>{
+    const mediaPreview = item.media_type === 'video'
+      ? `<video src="${item.media_url}" controls style="width:100%; max-width:220px; border-radius:8px; display:block;"></video>`
+      : `<img src="${item.media_url}" style="width:100%; max-width:220px; border-radius:8px; display:block; object-fit:cover;">`;
+    return `
     <div class="card" style="margin-bottom:10px">
-      <div style="display:flex; gap:14px;">
-        <div style="flex:1"><b>${item.property_name||'(no name)'}</b> · ${item.location||''}<br>
-        <span class="pill ${item.status==='ready'?'pill-active':item.status==='published'?'pill-done':'pill-pending'}">${item.status}</span></div>
+      <div style="display:flex; gap:16px; flex-wrap:wrap;">
+        <div style="flex-shrink:0;">${mediaPreview}</div>
+        <div style="flex:1; min-width:200px;">
+          <b>${item.property_name||'(no name)'}</b> · ${item.location||''} · ${item.price||''}<br>
+          <span class="pill ${item.status==='ready'?'pill-active':item.status==='published'?'pill-done':'pill-pending'}">${item.status}</span>
+          <div style="margin-top:8px; font-size:13px; white-space:pre-wrap;">${item.caption || '<span style="color:var(--muted)">Caption generate ho raha hai...</span>'}</div>
+          <div style="margin-top:6px; font-size:12px; color:var(--muted)">${item.hashtags||''}</div>
+        </div>
       </div>
-      <div style="margin-top:8px; font-size:13px; white-space:pre-wrap;">${item.caption || '<span style="color:var(--muted)">Caption generate ho raha hai...</span>'}</div>
-      <div style="margin-top:6px; font-size:12px; color:var(--muted)">${item.hashtags||''}</div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 }
 checkSession();
 handleOAuthReturn();
