@@ -188,46 +188,48 @@
       </div>
     </div>
   </div>
-<!-- CONTENT UPLOAD -->
-<div class="tab-panel" id="tab-content" style="display:none">
-  <div class="card">
-    <div class="section-title">Naya Content Upload Karo</div>
-    <div class="section-sub">Photo/video daalo + property details bharo — AI khud caption, hashtags aur keywords bana dega. Approve karne ke baad ye calendar ke hisab se auto-publish ho jayega.</div>
-    <div class="row">
-      <div class="field" style="max-width:220px">
-        <label>Client</label>
-        <select id="cu_client"></select>
+
+  <!-- CONTENT UPLOAD -->
+  <div class="tab-panel" id="tab-content" style="display:none">
+    <div class="card">
+      <div class="section-title">Naya Content Upload Karo</div>
+      <div class="section-sub">Photo/video daalo + property details bharo aur khud caption/hashtags likho. Save karne ke baad ye calendar ke hisab se auto-publish ho jayega.</div>
+      <div class="row">
+        <div class="field" style="max-width:220px">
+          <label>Client</label>
+          <select id="cu_client"></select>
+        </div>
+        <div class="field" style="max-width:160px">
+          <label>Type</label>
+          <select id="cu_type">
+            <option value="image">Photo / Post</option>
+            <option value="video">Reel / Video</option>
+          </select>
+        </div>
+        <div class="field"><label>Media File</label><input id="cu_file" type="file" accept="image/*,video/*"></div>
       </div>
-      <div class="field" style="max-width:160px">
-        <label>Type</label>
-        <select id="cu_type">
-          <option value="image">Photo / Post</option>
-          <option value="video">Reel / Video</option>
-        </select>
-      </div>
-      <div class="field"><label>Media File</label><input id="cu_file" type="file" accept="image/*,video/*"></div>
-    </div>
-    <div class="row" style="margin-top:10px">
-      <div class="field"><label>Property Name</label><input id="cu_name" placeholder="e.g. 3BHK Skyline Residency"></div>
-      <div class="field"><label>Price</label><input id="cu_price" placeholder="e.g. ₹65 Lakh onwards"></div>
-      <div class="field"><label>Location</label><input id="cu_location" placeholder="e.g. Bopal, Ahmedabad"></div>
-    </div>
-    <div class="row" style="margin-top:10px">
-      <div class="field"><label>Key Features (comma separated)</label><input id="cu_features" placeholder="e.g. Rooftop pool, 3 BHK, Gated society, Near SG Highway"></div>
       <div class="row" style="margin-top:10px">
-  <div class="field"><label>Caption</label><input id="cu_caption" placeholder="Apna caption yahan likho"></div>
-  <div class="field"><label>Hashtags</label><input id="cu_hashtags" placeholder="#realestate #ahmedabad ..."></div>
-</div>
+        <div class="field"><label>Property Name</label><input id="cu_name" placeholder="e.g. 3BHK Skyline Residency"></div>
+        <div class="field"><label>Price</label><input id="cu_price" placeholder="e.g. ₹65 Lakh onwards"></div>
+        <div class="field"><label>Location</label><input id="cu_location" placeholder="e.g. Bopal, Ahmedabad"></div>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <div class="field"><label>Key Features (comma separated)</label><input id="cu_features" placeholder="e.g. Rooftop pool, 3 BHK, Gated society, Near SG Highway"></div>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <div class="field"><label>Caption</label><input id="cu_caption" placeholder="Apna caption yahan likho"></div>
+        <div class="field"><label>Hashtags</label><input id="cu_hashtags" placeholder="#realestate #ahmedabad ..."></div>
+      </div>
+      <button class="btn btn-gold" style="margin-top:14px" onclick="uploadContent()">Upload Content</button>
+      <div id="cu_status" style="margin-top:10px; font-size:13px;"></div>
     </div>
-    <button class="btn btn-gold" style="margin-top:14px" onclick="uploadContent()">Upload & Generate Caption</button>
-    <div id="cu_status" style="margin-top:10px; font-size:13px;"></div>
+
+    <div class="card">
+      <div class="section-title">Content Queue</div>
+      <div id="contentQueueList"></div>
+    </div>
   </div>
 
-  <div class="card">
-    <div class="section-title">Content Queue</div>
-    <div id="contentQueueList"></div>
-  </div>
-</div>
   <!-- ROADMAP -->
   <div class="tab-panel" id="tab-roadmap" style="display:none">
     <div class="card">
@@ -283,7 +285,7 @@
 <footer>Lavista Client OS · Phase 1 · Data saved locally in this browser</footer>
 
 <script>
-// ============ CONFIG — fill these in, see SETUP-GUIDE.md ============
+// ============ CONFIG ============
 const CONFIG = {
   SUPABASE_URL: 'https://dfduzpsnzruzsdjipgww.supabase.co',
   SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZHV6cHNuenJ1enNkamlwZ3d3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyMTA3NTEsImV4cCI6MjA5Nzc4Njc1MX0.5jIgdYKzFGRDZ2wfrn290zkSPumhs1goC1ekhWdO68I',
@@ -547,6 +549,22 @@ async function uploadContent(){
   }
 }
 
+async function deleteContentItem(id, mediaUrl){
+  if(!confirm('Ye content permanently delete karna hai (image/video bhi)?')) return;
+  try{
+    const urlParts = mediaUrl.split('/client-content/');
+    const filePath = urlParts[1];
+    if(filePath){
+      await supa.storage.from('client-content').remove([filePath]);
+    }
+    const { error } = await supa.from('content_queue').delete().eq('id', id);
+    if(error){ alert('Delete fail: ' + error.message); return; }
+    renderContentQueue();
+  }catch(err){
+    alert('Error: ' + err.message);
+  }
+}
+
 async function renderContentQueue(){
   const wrap = document.getElementById('contentQueueList');
   if(!wrap || !supa) return;
@@ -557,7 +575,7 @@ async function renderContentQueue(){
     const mediaPreview = item.media_type === 'video'
       ? `<video src="${item.media_url}" controls style="width:100%; max-width:220px; border-radius:8px; display:block;"></video>`
       : `<img src="${item.media_url}" style="width:100%; max-width:220px; border-radius:8px; display:block; object-fit:cover;">`;
-       return `
+    return `
     <div class="card" style="margin-bottom:10px">
       <div style="display:flex; gap:16px; flex-wrap:wrap;">
         <div style="flex-shrink:0;">${mediaPreview}</div>
@@ -573,21 +591,6 @@ async function renderContentQueue(){
   }).join('');
 }
 
-  async function deleteContentItem(id, mediaUrl){
-  if(!confirm('Ye content permanently delete karna hai (image/video bhi)?')) return;
-  try{
-    const urlParts = mediaUrl.split('/client-content/');
-    const filePath = urlParts[1];
-    if(filePath){
-      await supa.storage.from('client-content').remove([filePath]);
-    }
-    const { error } = await supa.from('content_queue').delete().eq('id', id);
-    if(error){ alert('Delete fail: ' + error.message); return; }
-    renderContentQueue();
-  }catch(err){
-    alert('Error: ' + err.message);
-  }
-}
 const STORE_KEY = 'lavista_client_os_v1';
 let DB = JSON.parse(localStorage.getItem(STORE_KEY) || '{"clients":[],"calendar":[]}');
 
