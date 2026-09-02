@@ -220,6 +220,10 @@
         <div class="field"><label>Caption</label><input id="cu_caption" placeholder="Apna caption yahan likho"></div>
         <div class="field"><label>Hashtags</label><input id="cu_hashtags" placeholder="#realestate #ahmedabad ..."></div>
       </div>
+      <div class="row" style="margin-top:10px">
+  <div class="field" style="max-width:200px"><label>Publish Date</label><input id="cu_date" type="date"></div>
+  <div class="field" style="max-width:160px"><label>Publish Time (24hr)</label><input id="cu_time" type="time" value="19:30"></div>
+</div>
       <button class="btn btn-gold" style="margin-top:14px" onclick="uploadContent()">Upload Content</button>
       <div id="cu_status" style="margin-top:10px; font-size:13px;"></div>
     </div>
@@ -476,6 +480,8 @@ async function uploadContent(){
   const features = document.getElementById('cu_features').value.trim();
   const caption = document.getElementById('cu_caption').value.trim();
   const hashtags = document.getElementById('cu_hashtags').value.trim();
+  const scheduledDate = document.getElementById('cu_date').value;
+  const scheduledTime = document.getElementById('cu_time').value;
 
   if(!fileInput.files[0]){ statusEl.textContent = 'Pehle file select karo.'; statusEl.style.color='var(--red)'; return; }
   if(!clientId){ statusEl.textContent = 'Client select karo.'; statusEl.style.color='var(--red)'; return; }
@@ -534,6 +540,8 @@ async function uploadContent(){
       features: features,
       caption: caption,
       hashtags: hashtags,
+      scheduled_date: scheduledDate || null,
+      scheduled_time: scheduledTime || null,
       status: 'ready'
     });
     if(insertError) throw new Error('Save fail: ' + insertError.message);
