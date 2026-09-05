@@ -467,7 +467,13 @@ async function askAI(){
 }
 
 // ============ CONTENT UPLOAD ============
-function populateClientDropdown(){
+  async function loadClients(){
+  const { data, error } = await supa.from('clients').select('*').order('created_at');
+  if(!error && data){
+    DB.clients = data.map(c => ({id:c.id, name:c.name, wa:c.wa||'', start:c.start, months:c.months, posts:c.posts, reels:c.reels}));
+  }
+}
+  function populateClientDropdown(){
   const sel = document.getElementById('cu_client');
   if(!sel) return;
   sel.innerHTML = DB.clients.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
@@ -628,7 +634,7 @@ function bestTimeFor(dateObj, type){
   return (day===0||day===6) ? '10:30 AM' : '7:30 PM';
 }
 
-function addClient(){
+async function addClient(){
   const name = document.getElementById('c_name').value.trim();
   const wa = document.getElementById('c_wa').value.trim();
   const start = document.getElementById('c_start').value;
@@ -637,9 +643,11 @@ function addClient(){
   const reels = parseInt(document.getElementById('c_reels').value)||0;
   if(!name || !start){ alert('Client name and start date are required'); return; }
   const id = 'cl_'+Date.now();
-  DB.clients.push({id, name, wa, start, months, posts, reels});
+  const { error } = await supa.from('clients').insert({id, name, wa, start, months, posts, reels});
+  if(error){ alert('Failed to add client: ' + error.message); return; }
   generateCalendarForClient(id);
   ['c_name','c_wa'].forEach(f=>document.getElementById(f).value='');
+  await loadClients();
   save();
   switchTab('clients');
 }
@@ -681,10 +689,12 @@ function regenerateCalendar(){
   save();
 }
 
-function deleteClient(id){
+async function deleteClient(id){
   if(!confirm('Delete this client and their entire calendar?')) return;
-  DB.clients = DB.clients.filter(c=>c.id!==id);
+  const { error } = await supa.from('clients').delete().eq('id', id);
+  if(error){ alert('Failed to delete client: ' + error.message); return; }
   DB.calendar = DB.calendar.filter(c=>c.clientId!==id);
+  await loadClients();
   save();
 }
 
@@ -705,6 +715,16 @@ function packageStatus(client){
 }
 
 async function renderAll(){
+  await loadClients();
+  renderStats();
+  renderClients();
+  renderClientSelect();
+  renderCalendar();
+  await renderIntegrations();
+  populateClientDropdown();
+  renderContentQueue();
+}
+  async function renderAll(){
   renderStats();
   renderClients();
   renderClientSelect();
