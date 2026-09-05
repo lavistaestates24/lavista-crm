@@ -25,8 +25,9 @@
   .row{display:flex; gap:14px; flex-wrap:wrap; align-items:flex-end;}
   .field{display:flex; flex-direction:column; gap:5px; flex:1; min-width:140px;}
   .field label{font-size:11.5px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.4px;}
-  input,select{padding:9px 10px; border:1px solid var(--line); border-radius:6px; font-size:13.5px; background:var(--cream); color:var(--ink);}
-  input:focus,select:focus{outline:2px solid var(--gold-soft);}
+  input,select,textarea{padding:9px 10px; border:1px solid var(--line); border-radius:6px; font-size:13.5px; background:var(--cream); color:var(--ink); font-family:inherit;}
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--gold-soft);}
+  textarea{resize:vertical;}
   .btn{background:var(--brown); color:var(--gold-soft); border:none; padding:10px 18px; border-radius:6px; font-weight:700; font-size:13px; cursor:pointer;}
   .btn:hover{background:var(--brown2);}
   .btn-gold{background:var(--gold); color:var(--brown);}
@@ -93,7 +94,7 @@
     </div>
     <div id="loginMsg" style="font-size:12px; color:var(--red); margin-top:10px;"></div>
     <div style="font-size:11px; color:var(--muted); margin-top:14px; line-height:1.5;">
-      Config abhi set nahi hai to login kaam nahi karega — neeche CONFIG block mein SUPABASE_URL/ANON_KEY daalo (SETUP-GUIDE dekho).
+      Configuration is not set — login will not work until SUPABASE_URL/ANON_KEY are added in the CONFIG block below (see SETUP-GUIDE).
     </div>
   </div>
 </div>
@@ -119,9 +120,9 @@
   <div class="tab-panel" id="tab-dashboard">
     <div class="stat-grid" id="statGrid"></div>
     <div class="card">
-      <div class="section-title">Kya ye tool karta hai (Phase 1)</div>
+      <div class="section-title">What This Tool Does (Phase 1)</div>
       <div class="section-sub">
-        Client add karo → package set karo (X months, Y posts/month, Z reels/month) → ek click mein poore package ka date-wise content calendar auto-generate ho jata hai, best-time slot ke saath. Har item ko "Uploaded" mark karke track karo.
+        Add a client → configure the package (X months, Y posts/month, Z reels/month) → a complete date-wise content calendar is auto-generated instantly, complete with optimal posting times. Track progress by marking each item "Uploaded."
       </div>
     </div>
   </div>
@@ -129,7 +130,7 @@
   <!-- CLIENTS -->
   <div class="tab-panel" id="tab-clients" style="display:none">
     <div class="card">
-      <div class="section-title">Naya Client Add Karo</div>
+      <div class="section-title">Add New Client</div>
       <div class="row" style="margin-top:10px">
         <div class="field"><label>Client / Project Name</label><input id="c_name" placeholder="e.g. Sahitya Nest"></div>
         <div class="field"><label>WhatsApp Number</label><input id="c_wa" placeholder="9198xxxxxxx"></div>
@@ -150,7 +151,7 @@
   <div class="tab-panel" id="tab-integrations" style="display:none">
     <div class="card">
       <div class="section-title">Instagram / Facebook Connect</div>
-      <div class="section-sub">Har client ko unke Instagram Business account se connect karo. Connect hote hi calendar ki date/time pe posts/reels automatically publish honge. Instagram Business account, ek Facebook Page se linked hona zaroori hai.</div>
+      <div class="section-sub">Connect each client's Instagram Business account. Once connected, posts and reels will publish automatically at the scheduled date and time. An Instagram Business account must be linked to a Facebook Page.</div>
       <div id="integrationsList"></div>
     </div>
   </div>
@@ -180,11 +181,11 @@
   <div class="tab-panel" id="tab-ai" style="display:none">
     <div class="card">
       <div class="section-title">AI Assistant</div>
-      <div class="section-sub">Apne clients, calendar, aur pending content ke baare mein sawal pucho — ye seedha tumhare live data ko padhkar jawab deta hai. e.g. "Kis client ka sabse zyada content pending hai?" ya "Is hafte kitni reels due hain?"</div>
+      <div class="section-sub">Ask questions about your clients, calendar, or pending content — this reads your live data directly to answer. e.g. "Which client has the most pending content?" or "How many reels are due this week?"</div>
       <div id="aiChatLog" style="max-height:320px; overflow-y:auto; margin-bottom:14px;"></div>
       <div class="row">
-        <div class="field" style="flex:4"><input id="aiInput" placeholder="Apna sawal likho..." onkeydown="if(event.key==='Enter')askAI()"></div>
-        <button class="btn btn-gold" id="aiAskBtn" onclick="askAI()">Pucho</button>
+        <div class="field" style="flex:4"><input id="aiInput" placeholder="Type your question..." onkeydown="if(event.key==='Enter')askAI()"></div>
+        <button class="btn btn-gold" id="aiAskBtn" onclick="askAI()">Ask</button>
       </div>
     </div>
   </div>
@@ -192,8 +193,8 @@
   <!-- CONTENT UPLOAD -->
   <div class="tab-panel" id="tab-content" style="display:none">
     <div class="card">
-      <div class="section-title">Naya Content Upload Karo</div>
-      <div class="section-sub">Photo/video daalo + property details bharo aur khud caption/hashtags likho. Save karne ke baad ye calendar ke hisab se auto-publish ho jayega.</div>
+      <div class="section-title">Upload New Content</div>
+      <div class="section-sub">Upload a photo or video and fill in the property details — captions and hashtags can be written manually or generated by AI. Once scheduled, it will auto-publish at the set date and time.</div>
       <div class="row">
         <div class="field" style="max-width:220px">
           <label>Client</label>
@@ -217,16 +218,16 @@
         <div class="field"><label>Key Features (comma separated)</label><input id="cu_features" placeholder="e.g. Rooftop pool, 3 BHK, Gated society, Near SG Highway"></div>
       </div>
       <div class="row" style="margin-top:10px">
-      <div class="field" style="flex:2; min-width:280px;">
-      <label>Caption</label>
-      <textarea id="cu_caption" placeholder="Apna caption yahan likho" rows="8" style="padding:9px 10px; border:1px solid var(--line); border-radius:6px; font-size:13.5px; background:var(--cream); color:var(--ink); font-family:inherit; resize:vertical;"></textarea>
-      </div>
+        <div class="field" style="flex:2; min-width:280px;">
+          <label>Caption</label>
+          <textarea id="cu_caption" placeholder="Write your caption here" rows="8"></textarea>
+        </div>
         <div class="field"><label>Hashtags</label><input id="cu_hashtags" placeholder="#realestate #ahmedabad ..."></div>
       </div>
       <div class="row" style="margin-top:10px">
-  <div class="field" style="max-width:200px"><label>Publish Date</label><input id="cu_date" type="date"></div>
-  <div class="field" style="max-width:160px"><label>Publish Time (24hr)</label><input id="cu_time" type="time" value="19:30"></div>
-</div>
+        <div class="field" style="max-width:200px"><label>Publish Date</label><input id="cu_date" type="date"></div>
+        <div class="field" style="max-width:160px"><label>Publish Time (24hr)</label><input id="cu_time" type="time" value="19:30"></div>
+      </div>
       <button class="btn btn-gold" style="margin-top:14px" onclick="uploadContent()">Upload Content</button>
       <div id="cu_status" style="margin-top:10px; font-size:13px;"></div>
     </div>
@@ -240,22 +241,22 @@
   <!-- ROADMAP -->
   <div class="tab-panel" id="tab-roadmap" style="display:none">
     <div class="card">
-      <div class="section-title">Poora System — Build Roadmap</div>
-      <div class="section-sub">Har phase pichle Phase ke data (clients, calendar) par build hota hai. Ye honest status hai — kya live hai, kya next hai, aur kaunsi cheez ke liye real API keys/setup chahiye.</div>
+      <div class="section-title">Full System — Build Roadmap</div>
+      <div class="section-sub">Each phase builds on the previous phase's data (clients, calendar). This is an honest status view — what's live, what's next, and what real API keys/setup each stage requires.</div>
 
       <div class="roadmap-item">
         <div class="rm-badge rm-live">1</div>
         <div>
-          <div class="rm-title">Client Management + Content Calendar <span class="rm-tag tag-live">LIVE — is tool mein</span></div>
-          <div class="rm-desc">Client add karo, package set karo, auto date-wise post/reel calendar ban jaata hai best-time slot ke saath. Data abhi is browser mein (localStorage) save ho raha hai.</div>
+          <div class="rm-title">Client Management + Content Calendar <span class="rm-tag tag-live">LIVE — in this tool</span></div>
+          <div class="rm-desc">Add a client, set the package, and a date-wise post/reel calendar is generated automatically with optimal time slots. Data is currently saved in this browser (localStorage).</div>
         </div>
       </div>
 
       <div class="roadmap-item">
         <div class="rm-badge rm-next">2</div>
         <div>
-          <div class="rm-title">Auto-Posting to Instagram/Facebook <span class="rm-tag tag-next">NEXT</span></div>
-          <div class="rm-desc">Meta Graph API se calendar ki date/time pe khud post/reel publish ho — iske liye har client ke Instagram Business account ko connect karna hoga (Facebook Business Manager se token) + ek server (Supabase Edge Function jaisa tumhare attendance system mein hai) jo scheduled time pe API call kare. Graphics/reel file upload karna abhi manual rahega — AI se poora video render karna alag heavy project hai.</div>
+          <div class="rm-title">Auto-Posting to Instagram/Facebook <span class="rm-tag tag-next">LIVE</span></div>
+          <div class="rm-desc">Posts and reels are automatically published via the Meta Graph API at the scheduled date/time. Each client's Instagram Business account must be connected (via Facebook Business Manager token), and a scheduled server job (Supabase Edge Function) checks and publishes due content.</div>
         </div>
       </div>
 
@@ -263,7 +264,7 @@
         <div class="rm-badge rm-future">3</div>
         <div>
           <div class="rm-title">Meta Ads Campaign Automation <span class="rm-tag tag-future">PLANNED</span></div>
-          <div class="rm-desc">Client select karo, daily budget daalo → Meta Ads API se lead-gen campaign auto-create. Cost-per-lead rules ke basis par audience/creative switch (agar zyada cost ho). Ye "AI khud seekh kar strategy badalta hai" nahi — ye "agar-to" rule-engine hai jo performance data dekh kar action leta hai. Meta Ads account access chahiye hoga.</div>
+          <div class="rm-desc">Select a client, set a daily budget → the Meta Ads API auto-creates a lead-gen campaign. Audience/creative switches based on cost-per-lead rules. This is a rule-based engine reacting to performance data, not self-learning AI. Requires Meta Ads account access.</div>
         </div>
       </div>
 
@@ -271,7 +272,7 @@
         <div class="rm-badge rm-next">4</div>
         <div>
           <div class="rm-title">WhatsApp Lead Verification Bot <span class="rm-tag tag-next">NEXT</span></div>
-          <div class="rm-desc">Naya lead aate hi WhatsApp Business Cloud API se automatic pehla message + 2-3 qualifying questions (budget/location/timeline). Reply ke basis par lead auto-tag hota hai: Hot / Warm / Cold / Fake. No calling — sirf message-based verification. WhatsApp Business API approval + number chahiye.</div>
+          <div class="rm-desc">As soon as a new lead arrives, the WhatsApp Business Cloud API sends an automatic first message plus 2-3 qualifying questions (budget/location/timeline). Based on replies, the lead is auto-tagged: Hot / Warm / Cold / Fake. Message-based verification only, no calling. Requires WhatsApp Business API approval and a number.</div>
         </div>
       </div>
 
@@ -279,7 +280,7 @@
         <div class="rm-badge rm-future">5</div>
         <div>
           <div class="rm-title">Daily Lead → Excel Auto-Sync + Dashboard <span class="rm-tag tag-future">PLANNED</span></div>
-          <div class="rm-desc">Har raat/subah leads (with WhatsApp verification tag) client ke folder ki sheet mein auto-populate (Supabase → Google Sheets ya Excel export), saath mein cost-per-lead aur lead-quality summary — yahi data Phase 3 ads automation ko feed hota hai.</div>
+          <div class="rm-desc">Each night/morning, leads (with WhatsApp verification tags) auto-populate into the client's sheet (Supabase → Google Sheets or Excel export), along with cost-per-lead and lead-quality summaries — this data feeds the Phase 3 ads automation.</div>
         </div>
       </div>
     </div>
@@ -311,9 +312,9 @@ async function doLogin(){
   const pass = document.getElementById('login_pass').value;
   const msgEl = document.getElementById('loginMsg');
   msgEl.style.color = 'var(--red)';
-  if(!supa){ msgEl.textContent = 'CONFIG set nahi hai — SETUP-GUIDE.md dekho.'; return; }
-  if(!email || !pass){ msgEl.textContent = 'Email aur password dono bharo.'; return; }
-  msgEl.textContent = 'Login ho raha hai...';
+  if(!supa){ msgEl.textContent = 'Configuration is not set — see SETUP-GUIDE.'; return; }
+  if(!email || !pass){ msgEl.textContent = 'Please enter both email and password.'; return; }
+  msgEl.textContent = 'Logging in...';
   try{
     const {error} = await supa.auth.signInWithPassword({email, password:pass});
     if(error){ msgEl.textContent = error.message; return; }
@@ -326,11 +327,11 @@ async function doLogin(){
 async function doSignup(){
   const email = document.getElementById('login_email').value.trim();
   const pass = document.getElementById('login_pass').value;
-  if(!supa){ document.getElementById('loginMsg').textContent = 'CONFIG set nahi hai — SETUP-GUIDE.md dekho.'; return; }
+  if(!supa){ document.getElementById('loginMsg').textContent = 'Configuration is not set — see SETUP-GUIDE.'; return; }
   const {error} = await supa.auth.signUp({email, password:pass});
   if(error){ document.getElementById('loginMsg').textContent = error.message; return; }
   document.getElementById('loginMsg').style.color = 'var(--green)';
-  document.getElementById('loginMsg').textContent = 'Account bana. Ab login karo (agar email confirmation on hai to pehle mail check karo).';
+  document.getElementById('loginMsg').textContent = 'Account created. Please log in now (check your email first if confirmation is enabled).';
 }
 async function checkSession(){
   if(!supa){ return; }
@@ -338,14 +339,14 @@ async function checkSession(){
     const {data:{session}} = await supa.auth.getSession();
     if(session){ document.getElementById('loginGate').classList.remove('show'); }
   }catch(err){
-    showToast('Session check fail hui, phir se login karo.', true);
+    showToast('Session check failed, please log in again.', true);
   }
 }
 
 // ============ META (Instagram/Facebook) CONNECT ============
 function connectMeta(clientId){
   if(!CONFIG.INSTAGRAM_APP_ID || CONFIG.INSTAGRAM_APP_ID.includes('YOUR-')){
-    alert('INSTAGRAM_APP_ID CONFIG mein set nahi hai. SETUP-GUIDE.md dekho.');
+    alert('INSTAGRAM_APP_ID is not set in CONFIG. See SETUP-GUIDE.');
     return;
   }
   const scope = 'instagram_business_basic,instagram_business_content_publish,instagram_business_manage_comments,instagram_business_manage_messages';
@@ -367,7 +368,7 @@ async function handleOAuthReturn(){
     body: JSON.stringify({code, clientId, redirectUri: CONFIG.REDIRECT_URI})
   });
   const result = await res.json();
-  if(!res.ok){ alert('Connect fail: ' + (result.error||'unknown error')); return; }
+  if(!res.ok){ alert('Connect failed: ' + (result.error||'unknown error')); return; }
   alert(`Connected: @${result.ig_username||'account'}`);
   renderIntegrations();
 }
@@ -375,7 +376,7 @@ async function handleOAuthReturn(){
 async function renderIntegrations(){
   const wrap = document.getElementById('integrationsList');
   if(!wrap) return;
-  if(DB.clients.length===0){ wrap.innerHTML = `<div class="empty"><b>Pehle Clients tab se client add karo</b></div>`; return; }
+  if(DB.clients.length===0){ wrap.innerHTML = `<div class="empty"><b>Add a client from the Clients tab first</b></div>`; return; }
   let liveConnections = {};
   if(supa){
     const { data, error } = await supa.from('meta_connections').select('client_id, ig_username');
@@ -410,7 +411,7 @@ async function fetchWithTimeout(url, opts={}, ms=15000){
     return res;
   }catch(err){
     clearTimeout(id);
-    if(err.name === 'AbortError') throw new Error('Request took too long, phir se try karo.');
+    if(err.name === 'AbortError') throw new Error('Request took too long, please try again.');
     throw err;
   }
 }
@@ -427,7 +428,7 @@ async function askAI(){
   input.value = '';
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span>';
-  log.innerHTML += `<div class="chat-bubble chat-ai" id="aiPending">Soch raha hoon...</div>`;
+  log.innerHTML += `<div class="chat-bubble chat-ai" id="aiPending">Thinking...</div>`;
   log.scrollTop = log.scrollHeight;
 
   const dataContext = {
@@ -445,27 +446,27 @@ async function askAI(){
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
-        model:'claude-sonnet-4-6',
+        model:'claude-sonnet-5',
         max_tokens:600,
         messages:[{
           role:'user',
-          content:`Tum Lavista real estate social media agency ke internal assistant ho. Neeche client aur content calendar ka live data hai. User ke sawal ka short, seedha, Hinglish mein jawab do — sirf data ke basis par, andaza mat lagao agar data mein nahi hai.\n\nDATA:\n${JSON.stringify(dataContext)}\n\nSAWAL: ${question}`
+          content:`You are the internal assistant for Lavista, a real estate social media agency. Below is live client and content calendar data. Answer the user's question briefly and directly, based only on this data — do not guess if it isn't in the data.\n\nDATA:\n${JSON.stringify(dataContext)}\n\nQUESTION: ${question}`
         }]
       })
     }, 20000);
     const result = await res.json();
-    const text = result?.content?.find(b=>b.type==='text')?.text || 'Jawab nahi mil paya, phir se try karo.';
+    const text = result?.content?.find(b=>b.type==='text')?.text || 'Could not get a response, please try again.';
     document.getElementById('aiPending').outerHTML = `<div class="chat-bubble chat-ai">${text.replace(/\n/g,'<br>')}</div>`;
   }catch(err){
-    document.getElementById('aiPending').outerHTML = `<div class="chat-bubble chat-ai">Error aayi: ${err.message}</div>`;
+    document.getElementById('aiPending').outerHTML = `<div class="chat-bubble chat-ai">Error: ${err.message}</div>`;
   }finally{
     btn.disabled = false;
-    btn.textContent = 'Pucho';
+    btn.textContent = 'Ask';
     log.scrollTop = log.scrollHeight;
   }
 }
 
-// ============ CONTENT UPLOAD (manual caption — no AI call) ============
+// ============ CONTENT UPLOAD ============
 function populateClientDropdown(){
   const sel = document.getElementById('cu_client');
   if(!sel) return;
@@ -481,13 +482,13 @@ async function uploadContent(){
   const price = document.getElementById('cu_price').value.trim();
   const location = document.getElementById('cu_location').value.trim();
   const features = document.getElementById('cu_features').value.trim();
-  const caption = document.getElementById('cu_caption').value.trim();           
+  const caption = document.getElementById('cu_caption').value.trim();
   const hashtags = document.getElementById('cu_hashtags').value.trim();
   const scheduledDate = document.getElementById('cu_date').value;
   const scheduledTime = document.getElementById('cu_time').value;
 
-  if(!fileInput.files[0]){ statusEl.textContent = 'Pehle file select karo.'; statusEl.style.color='var(--red)'; return; }
-  if(!clientId){ statusEl.textContent = 'Client select karo.'; statusEl.style.color='var(--red)'; return; }
+  if(!fileInput.files[0]){ statusEl.textContent = 'Please select a file first.'; statusEl.style.color='var(--red)'; return; }
+  if(!clientId){ statusEl.textContent = 'Please select a client.'; statusEl.style.color='var(--red)'; return; }
 
   const file = fileInput.files[0];
   const filePath = `${clientId}/${Date.now()}_${file.name}`;
@@ -547,11 +548,11 @@ async function uploadContent(){
       scheduled_time: scheduledTime || null,
       status: 'ready'
     });
-    if(insertError) throw new Error('Save fail: ' + insertError.message);
+    if(insertError) throw new Error('Save failed: ' + insertError.message);
 
     statusEl.style.color = 'var(--green)';
-    statusEl.textContent = 'Upload ho gaya! Content Queue mein check karo.';
-    ['cu_name','cu_price','cu_location','cu_features','cu_caption','cu_hashtags'].forEach(id=>document.getElementById(id).value='');
+    statusEl.textContent = 'Upload complete! Check the Content Queue below.';
+    ['cu_name','cu_price','cu_location','cu_features','cu_caption','cu_hashtags','cu_date','cu_time'].forEach(id=>document.getElementById(id).value='');
     fileInput.value='';
     renderContentQueue();
   }catch(err){
@@ -561,7 +562,7 @@ async function uploadContent(){
 }
 
 async function deleteContentItem(id, mediaUrl){
-  if(!confirm('Ye content permanently delete karna hai (image/video bhi)?')) return;
+  if(!confirm('Permanently delete this content (including the image/video)?')) return;
   try{
     const urlParts = mediaUrl.split('/client-content/');
     const filePath = urlParts[1];
@@ -569,7 +570,7 @@ async function deleteContentItem(id, mediaUrl){
       await supa.storage.from('client-content').remove([filePath]);
     }
     const { error } = await supa.from('content_queue').delete().eq('id', id);
-    if(error){ alert('Delete fail: ' + error.message); return; }
+    if(error){ alert('Delete failed: ' + error.message); return; }
     renderContentQueue();
   }catch(err){
     alert('Error: ' + err.message);
@@ -580,8 +581,8 @@ async function renderContentQueue(){
   const wrap = document.getElementById('contentQueueList');
   if(!wrap || !supa) return;
   const { data, error } = await supa.from('content_queue').select('*').order('created_at', {ascending:false}).limit(20);
-  if(error){ wrap.innerHTML = `<div class="empty">Load karne mein error: ${error.message}</div>`; return; }
-  if(!data || data.length===0){ wrap.innerHTML = `<div class="empty"><b>Abhi koi content upload nahi hua</b></div>`; return; }
+  if(error){ wrap.innerHTML = `<div class="empty">Error loading content: ${error.message}</div>`; return; }
+  if(!data || data.length===0){ wrap.innerHTML = `<div class="empty"><b>No content uploaded yet</b></div>`; return; }
   wrap.innerHTML = data.map(item=>{
     const mediaPreview = item.media_type === 'video'
       ? `<video src="${item.media_url}" controls style="width:100%; max-width:220px; border-radius:8px; display:block;"></video>`
@@ -634,7 +635,7 @@ function addClient(){
   const months = parseInt(document.getElementById('c_months').value)||1;
   const posts = parseInt(document.getElementById('c_posts').value)||0;
   const reels = parseInt(document.getElementById('c_reels').value)||0;
-  if(!name || !start){ alert('Client name aur start date zaroori hai'); return; }
+  if(!name || !start){ alert('Client name and start date are required'); return; }
   const id = 'cl_'+Date.now();
   DB.clients.push({id, name, wa, start, months, posts, reels});
   generateCalendarForClient(id);
@@ -675,13 +676,13 @@ function generateCalendarForClient(clientId){
 function regenerateCalendar(){
   const clientId = document.getElementById('calClientSelect').value;
   if(!clientId) return;
-  if(!confirm('Is client ka calendar dobara generate karega, purana status reset ho jayega. Continue?')) return;
+  if(!confirm('This will regenerate the calendar for this client and reset previous progress. Continue?')) return;
   generateCalendarForClient(clientId);
   save();
 }
 
 function deleteClient(id){
-  if(!confirm('Client aur uska poora calendar delete karna hai?')) return;
+  if(!confirm('Delete this client and their entire calendar?')) return;
   DB.clients = DB.clients.filter(c=>c.id!==id);
   DB.calendar = DB.calendar.filter(c=>c.clientId!==id);
   save();
@@ -731,7 +732,7 @@ function renderClients(){
   document.getElementById('clientCount').textContent = DB.clients.length;
   const wrap = document.getElementById('clientTableWrap');
   if(DB.clients.length===0){
-    wrap.innerHTML = `<div class="empty"><b>Abhi koi client nahi hai</b>Upar form se pehla client add karo — calendar apne aap ban jayega.</div>`;
+    wrap.innerHTML = `<div class="empty"><b>No clients yet</b>Add your first client using the form above — the calendar will be generated automatically.</div>`;
     return;
   }
   let rows = DB.clients.map(c=>{
@@ -768,13 +769,13 @@ function renderCalendar(){
   const clientId = document.getElementById('calClientSelect').value;
   const filter = document.getElementById('calStatusFilter').value;
   if(!clientId){
-    wrap.innerHTML = `<div class="empty"><b>Koi client select nahi hai</b>Pehle Clients tab se client add karo.</div>`;
+    wrap.innerHTML = `<div class="empty"><b>No client selected</b>Add a client from the Clients tab first.</div>`;
     return;
   }
   let items = DB.calendar.filter(e=>e.clientId===clientId);
   if(filter!=='all') items = items.filter(e=>e.status===filter);
   if(items.length===0){
-    wrap.innerHTML = `<div class="empty"><b>Is filter ke liye kuch nahi mila</b></div>`;
+    wrap.innerHTML = `<div class="empty"><b>No results match this filter</b></div>`;
     return;
   }
   const rows = items.map(e=>{
