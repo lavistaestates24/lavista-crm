@@ -217,7 +217,10 @@
         <div class="field"><label>Key Features (comma separated)</label><input id="cu_features" placeholder="e.g. Rooftop pool, 3 BHK, Gated society, Near SG Highway"></div>
       </div>
       <div class="row" style="margin-top:10px">
-        <div class="field"><label>Caption</label><input id="cu_caption" placeholder="Apna caption yahan likho"></div>
+      <div class="field" style="flex:2; min-width:280px;">
+      <label>Caption</label>
+      <textarea id="cu_caption" placeholder="Apna caption yahan likho" rows="4" style="padding:9px 10px; border:1px solid var(--line); border-radius:6px; font-size:13.5px; background:var(--cream); color:var(--ink); font-family:inherit; resize:vertical;"></textarea>
+      </div>
         <div class="field"><label>Hashtags</label><input id="cu_hashtags" placeholder="#realestate #ahmedabad ..."></div>
       </div>
       <div class="row" style="margin-top:10px">
@@ -478,7 +481,7 @@ async function uploadContent(){
   const price = document.getElementById('cu_price').value.trim();
   const location = document.getElementById('cu_location').value.trim();
   const features = document.getElementById('cu_features').value.trim();
-  const caption = document.getElementById('cu_caption').value.trim();
+  const caption = document.getElementById('cu_caption').value.trim();           
   const hashtags = document.getElementById('cu_hashtags').value.trim();
   const scheduledDate = document.getElementById('cu_date').value;
   const scheduledTime = document.getElementById('cu_time').value;
