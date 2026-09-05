@@ -724,15 +724,7 @@ async function renderAll(){
   populateClientDropdown();
   renderContentQueue();
 }
-  async function renderAll(){
-  renderStats();
-  renderClients();
-  renderClientSelect();
-  renderCalendar();
-  await renderIntegrations();
-  populateClientDropdown();
-  renderContentQueue();
-}
+
 
 function renderStats(){
   const totalClients = DB.clients.length;
