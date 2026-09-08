@@ -561,6 +561,17 @@ async function renderContentQueue(){
     const mediaPreview = item.media_type === 'video'
       ? `<video src="${item.media_url}" controls style="width:100%; max-width:220px; border-radius:8px; display:block;"></video>`
       : `<img src="${item.media_url}" style="width:100%; max-width:220px; border-radius:8px; display:block; object-fit:cover;">`;
+
+    // Date/Day/Time banao
+    let scheduleInfo = '<span style="color:var(--muted)">No date/time set</span>';
+    if(item.scheduled_date){
+      const d = new Date(item.scheduled_date + 'T00:00:00');
+      const dayName = d.toLocaleDateString('en-IN', {weekday:'long'});
+      const dateStr = d.toLocaleDateString('en-IN', {day:'2-digit', month:'short', year:'numeric'});
+      const timeStr = item.scheduled_time || '—';
+      scheduleInfo = `📅 ${dateStr} (${dayName}) · 🕐 ${timeStr}`;
+    }
+
     return `
     <div class="card" style="margin-bottom:10px">
       <div style="display:flex; gap:16px; flex-wrap:wrap;">
@@ -568,6 +579,7 @@ async function renderContentQueue(){
         <div style="flex:1; min-width:200px;">
           <b>${item.property_name||'(no name)'}</b> · ${item.location||''} · ${item.price||''}<br>
           <span class="pill ${item.status==='ready'?'pill-active':item.status==='published'?'pill-done':'pill-pending'}">${item.status}</span>
+          <div style="margin-top:8px; font-size:13px; font-weight:700; color:var(--brown);">${scheduleInfo}</div>
           <div style="margin-top:8px; font-size:13px; white-space:pre-wrap;">${item.caption || '<span style="color:var(--muted)">No caption yet</span>'}</div>
           <div style="margin-top:6px; font-size:12px; color:var(--muted)">${item.hashtags||''}</div>
           <button class="close-x" style="margin-top:8px;" onclick="deleteContentItem('${item.id}', '${item.media_url}')">✕ Delete</button>
