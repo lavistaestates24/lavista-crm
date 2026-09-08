@@ -562,6 +562,10 @@ async function renderContentQueue(){
       ? `<video src="${item.media_url}" controls style="width:100%; max-width:220px; border-radius:8px; display:block;"></video>`
       : `<img src="${item.media_url}" style="width:100%; max-width:220px; border-radius:8px; display:block; object-fit:cover;">`;
 
+    // Client ka naam nikaalo
+    const client = DB.clients.find(c => c.id === item.client_id);
+    const clientName = client ? client.name : 'Unknown client';
+
     // Date/Day/Time banao
     let scheduleInfo = '<span style="color:var(--muted)">No date/time set</span>';
     if(item.scheduled_date){
@@ -577,6 +581,7 @@ async function renderContentQueue(){
       <div style="display:flex; gap:16px; flex-wrap:wrap;">
         <div style="flex-shrink:0;">${mediaPreview}</div>
         <div style="flex:1; min-width:200px;">
+          <span class="pill pill-post" style="margin-bottom:6px; display:inline-block;">📱 ${clientName}</span><br>
           <b>${item.property_name||'(no name)'}</b> · ${item.location||''} · ${item.price||''}<br>
           <span class="pill ${item.status==='ready'?'pill-active':item.status==='published'?'pill-done':'pill-pending'}">${item.status}</span>
           <div style="margin-top:8px; font-size:13px; font-weight:700; color:var(--brown);">${scheduleInfo}</div>
