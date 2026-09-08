@@ -531,6 +531,7 @@ const EMPLOYEES = [
   { name: "Mahak",   team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
   { name: "Kinjal",  team: "Real Estate", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday"},
   { name: "Kamini", team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
+  { name: "Samiksha", team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday", active: false }, // left the company — kept for historical report lookup only
 
 
 
@@ -1614,9 +1615,9 @@ function downloadFullSheetCsv(){
 
 // ---------- Per-employee 30-day timetable (e.g. "show me Piyush's report") ----------
 const empReportSelect = document.getElementById('empReportSelect');
-ACTIVE_EMPLOYEES.forEach(emp=>{
+EMPLOYEES.forEach(emp=>{ // includes inactive/past employees too — for historical lookup
   const o = document.createElement('option');
-  o.value = emp.name; o.textContent = emp.name;
+  o.value = emp.name; o.textContent = emp.name + (emp.active === false ? ' (past employee)' : '');
   empReportSelect.appendChild(o);
 });
 
