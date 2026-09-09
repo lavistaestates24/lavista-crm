@@ -387,7 +387,7 @@ async function handleOAuthReturn(){
 
 function connectFacebookPage(clientId){
   const scope = 'pages_show_list,pages_manage_posts,pages_read_engagement,business_management,public_profile';
-  const url = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${CONFIG.INSTAGRAM_APP_ID}&redirect_uri=${encodeURIComponent(CONFIG.REDIRECT_URI)}&state=fb_${clientId}&scope=${scope}&response_type=code`;
+  const url = `https://www.facebook.com/v19.0/dialog/oauth?client_id=1052672241046775&redirect_uri=${encodeURIComponent(CONFIG.REDIRECT_URI)}&state=fb_${clientId}&scope=${scope}&response_type=code`;
   window.location.href = url;
 }
 
