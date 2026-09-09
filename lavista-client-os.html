@@ -625,6 +625,21 @@ async function renderContentQueue(){
     </div>`;
   }).join('');
 }
+  async function deleteContentItem(id, mediaUrl){
+  if(!confirm('Permanently delete this content (including the image/video)?')) return;
+  try{
+    const urlParts = mediaUrl.split('/client-content/');
+    const filePath = urlParts[1];
+    if(filePath){
+      await supa.storage.from('client-content').remove([filePath]);
+    }
+    const { error } = await supa.from('content_queue').delete().eq('id', id);
+    if(error){ alert('Delete failed: ' + error.message); return; }
+    renderContentQueue();
+  }catch(err){
+    alert('Error: ' + err.message);
+  }
+}
 
 const STORE_KEY = 'lavista_client_os_v1';
 let DB = JSON.parse(localStorage.getItem(STORE_KEY) || '{"clients":[],"calendar":[]}');
