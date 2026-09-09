@@ -349,11 +349,30 @@ function connectMeta(clientId){
 async function handleOAuthReturn(){
   const params = new URLSearchParams(window.location.search);
   const code = params.get('code');
-  const clientId = params.get('state');
-  if(!code || !clientId) return;
+  const state = params.get('state');
+  if(!code || !state) return;
   window.history.replaceState({}, '', window.location.pathname);
   if(!supa){ alert('Connected, but CONFIG not set so it cannot be saved yet.'); return; }
+
   const {data:{session}} = await supa.auth.getSession();
+
+  // Facebook wala return: state 'fb_' se shuru hota hai
+  if(state.startsWith('fb_')){
+    const clientId = state.replace('fb_', '');
+    const res = await fetch(`${CONFIG.SUPABASE_URL}/functions/v1/exchange-facebook-token`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json', 'Authorization':`Bearer ${session?.access_token||CONFIG.SUPABASE_ANON_KEY}`},
+      body: JSON.stringify({code, clientId, redirectUri: CONFIG.REDIRECT_URI})
+    });
+    const result = await res.json();
+    if(!res.ok){ alert('Facebook connect failed: ' + (result.error||'unknown error')); return; }
+    alert(`Facebook Page connected: ${result.page_name||'Page'}`);
+    renderIntegrations();
+    return;
+  }
+
+  // Instagram wala return (jaisa pehle tha)
+  const clientId = state;
   const res = await fetch(`${CONFIG.SUPABASE_URL}/functions/v1/exchange-meta-token`, {
     method:'POST',
     headers:{'Content-Type':'application/json', 'Authorization':`Bearer ${session?.access_token||CONFIG.SUPABASE_ANON_KEY}`},
@@ -365,25 +384,38 @@ async function handleOAuthReturn(){
   renderIntegrations();
 }
 
+
+function connectFacebookPage(clientId){
+  const scope = 'pages_show_list,pages_manage_posts,pages_read_engagement,business_management,public_profile';
+  const url = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${CONFIG.INSTAGRAM_APP_ID}&redirect_uri=${encodeURIComponent(CONFIG.REDIRECT_URI)}&state=fb_${clientId}&scope=${scope}&response_type=code`;
+  window.location.href = url;
+}
+
 async function renderIntegrations(){
   const wrap = document.getElementById('integrationsList');
   if(!wrap) return;
   if(DB.clients.length===0){ wrap.innerHTML = `<div class="empty"><b>Add a client from the Clients tab first</b></div>`; return; }
   let liveConnections = {};
   if(supa){
-    const { data, error } = await supa.from('meta_connections').select('client_id, ig_username');
-    if(!error && data){ data.forEach(row => { liveConnections[row.client_id] = row.ig_username; }); }
+    const { data, error } = await supa.from('meta_connections').select('client_id, ig_username, page_name, fb_page_access_token');
+    if(!error && data){ data.forEach(row => { liveConnections[row.client_id] = row; }); }
   }
   wrap.innerHTML = DB.clients.map(c=>{
-    const igUsername = liveConnections[c.id];
-    const connected = !!igUsername;
+    const conn = liveConnections[c.id];
+    const igConnected = !!(conn && conn.ig_username);
+    const fbConnected = !!(conn && conn.fb_page_access_token);
     return `<div class="row" style="align-items:center; padding:12px 0; border-bottom:1px solid var(--line)">
       <div style="flex:2"><b>${c.name}</b></div>
-      <div style="flex:1">${connected ? `<span class="pill pill-active">Connected · @${igUsername}</span>` : `<span class="pill pill-pending">Not connected</span>`}</div>
-      <button class="btn btn-sm ${connected?'btn-outline':'btn-gold'}" onclick="connectMeta('${c.id}')">${connected?'Reconnect':'Connect Instagram/Facebook'}</button>
+      <div style="flex:1">
+        ${igConnected ? `<span class="pill pill-active">IG · @${conn.ig_username}</span>` : `<span class="pill pill-pending">IG not connected</span>`}<br>
+        ${fbConnected ? `<span class="pill pill-active" style="margin-top:4px; display:inline-block;">FB · ${conn.page_name||'Connected'}</span>` : `<span class="pill pill-pending" style="margin-top:4px; display:inline-block;">FB not connected</span>`}
+      </div>
+      <button class="btn btn-sm ${igConnected?'btn-outline':'btn-gold'}" onclick="connectMeta('${c.id}')">${igConnected?'Reconnect IG':'Connect Instagram'}</button>
+      <button class="btn btn-sm ${fbConnected?'btn-outline':'btn-gold'}" style="margin-left:6px;" onclick="connectFacebookPage('${c.id}')">${fbConnected?'Reconnect FB':'Connect Facebook Page'}</button>
     </div>`;
   }).join('');
 }
+
 
 // ============ RELIABILITY HELPERS ============
 function showToast(msg, isError){
