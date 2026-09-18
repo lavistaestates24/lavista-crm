@@ -221,17 +221,43 @@ const CATEGORIES = [
   "Lavista Marketing Salary"
 ];
 
-const CATEGORY_COLORS = {
-  "Deep Personal Expense":     "#F2C879", // light amber
-  "Deesa Home Expense":        "#8ECFE0", // light sky blue
-  "Amber Salon Expense":       "#E8A0BF", // light rose
-  "Amber Salon Salary":        "#F0A98A", // light coral
-  "Lavista Estate Expense":    "#A8D5A0", // light sage green
-  "Lavista Estate Salary":     "#8DDCC0", // light mint
-  "Lavista Marketing Expense": "#C6A8E8", // light lavender
-  "Lavista Marketing Salary":  "#A8B8F0"  // light periwinkle
+// Full-page background color per category (light, as requested)
+const CATEGORY_BG = {
+  "Deep Personal Expense":     "#FFF6DC", // light yellow
+  "Deesa Home Expense":        "#FFFFFF", // white
+  "Amber Salon Expense":       "#FDEAF1", // light rose
+  "Amber Salon Salary":        "#FDEDE3", // light peach
+  "Lavista Estate Expense":    "#EAF7E7", // light green
+  "Lavista Estate Salary":     "#E3F9F0", // light mint
+  "Lavista Marketing Expense": "#F3EAFB", // light lavender
+  "Lavista Marketing Salary":  "#EAEEFC"  // light periwinkle
 };
-function catColor(c){ return CATEGORY_COLORS[c] || 'var(--gold)'; }
+// Richer accent per category — used for buttons, totals, tab fill, entry highlights
+const CATEGORY_ACCENT = {
+  "Deep Personal Expense":     "#C99A2E",
+  "Deesa Home Expense":        "#3E93B3",
+  "Amber Salon Expense":       "#C15A82",
+  "Amber Salon Salary":        "#C96A3E",
+  "Lavista Estate Expense":    "#4F9645",
+  "Lavista Estate Salary":     "#2FA981",
+  "Lavista Marketing Expense": "#8A5AC0",
+  "Lavista Marketing Salary":  "#5A6FC7"
+};
+function catColor(c){ return CATEGORY_ACCENT[c] || 'var(--gold)'; }
+function catBg(c){ return CATEGORY_BG[c] || '#1A1A1A'; }
+
+// Recolors the whole app (background + cards + text) to match the given category
+function applyTheme(c){
+  const root = document.documentElement.style;
+  root.setProperty('--ink', catBg(c));
+  root.setProperty('--gold', catColor(c));
+  root.setProperty('--panel', 'rgba(255,255,255,0.6)');
+  root.setProperty('--panel-2', 'rgba(255,255,255,0.9)');
+  root.setProperty('--cream', '#2A2118');
+  root.setProperty('--muted', 'rgba(42,33,24,0.58)');
+  root.setProperty('--line', catColor(c) + '55');
+  document.body.style.background = catBg(c);
+}
 
 let currentCategory = CATEGORIES[0];
 let currentMonth = new Date().toISOString().slice(0,7);
@@ -277,6 +303,7 @@ function renderTabs(){
 }
 function switchCategory(c){
   currentCategory = c;
+  applyTheme(c);
   renderTabs();
   document.getElementById('historySection').style.display = 'none';
   document.getElementById('categorySection').style.display = 'block';
@@ -503,6 +530,7 @@ function escHtml(s){
 }
 
 function init(){
+  applyTheme(currentCategory);
   renderTabs();
   loadOverview();
   loadCategory();
