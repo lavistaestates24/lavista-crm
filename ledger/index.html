@@ -221,6 +221,18 @@ const CATEGORIES = [
   "Lavista Marketing Salary"
 ];
 
+const CATEGORY_COLORS = {
+  "Deep Personal Expense":     "#F2C879", // light amber
+  "Deesa Home Expense":        "#8ECFE0", // light sky blue
+  "Amber Salon Expense":       "#E8A0BF", // light rose
+  "Amber Salon Salary":        "#F0A98A", // light coral
+  "Lavista Estate Expense":    "#A8D5A0", // light sage green
+  "Lavista Estate Salary":     "#8DDCC0", // light mint
+  "Lavista Marketing Expense": "#C6A8E8", // light lavender
+  "Lavista Marketing Salary":  "#A8B8F0"  // light periwinkle
+};
+function catColor(c){ return CATEGORY_COLORS[c] || 'var(--gold)'; }
+
 let currentCategory = CATEGORIES[0];
 let currentMonth = new Date().toISOString().slice(0,7);
 
@@ -254,9 +266,14 @@ function unlock(){
 
 // ---------- Tabs ----------
 function renderTabs(){
-  document.getElementById('tabsRow').innerHTML = CATEGORIES.map(c =>
-    `<div class="tab${c === currentCategory ? ' active' : ''}" onclick="switchCategory('${c.replace(/'/g,"\\'")}')">${c}</div>`
-  ).join('');
+  document.getElementById('tabsRow').innerHTML = CATEGORIES.map(c => {
+    const col = catColor(c);
+    const active = c === currentCategory;
+    const style = active
+      ? `background:${col}; color:#1a1a1a; border-color:${col}; font-weight:700;`
+      : `border-color:${col}; color:${col};`;
+    return `<div class="tab" style="${style}" onclick="switchCategory('${c.replace(/'/g,"\\'")}')">${c}</div>`;
+  }).join('');
 }
 function switchCategory(c){
   currentCategory = c;
@@ -282,7 +299,7 @@ async function loadOverview(){
   const grandTotal = Object.values(byCategory).reduce((a,b)=>a+b, 0);
 
   const ovRows = CATEGORIES.map(c =>
-    `<div class="ov-row"><span>${c}</span><span class="amt">${fmtMoney(byCategory[c])}</span></div>`
+    `<div class="ov-row"><span style="color:${catColor(c)};">${c}</span><span class="amt" style="color:${catColor(c)};">${fmtMoney(byCategory[c])}</span></div>`
   ).join('');
 
   document.getElementById('overviewSection').innerHTML = `
@@ -311,15 +328,17 @@ async function loadCategory(){
   const rows = data || [];
   const total = rows.reduce((s,r)=>s+Number(r.amount), 0);
 
+  const col = catColor(currentCategory);
+
   document.getElementById('categorySection').innerHTML = `
     <div class="month-row">
       <label for="monthPicker">Month</label>
       <input type="month" id="monthPicker" value="${currentMonth}">
-      <div class="cat-total">${fmtMoney(total)}</div>
+      <div class="cat-total" style="color:${col};">${fmtMoney(total)}</div>
     </div>
 
-    <div class="add-form">
-      <div class="ft">Add Entry — ${currentCategory}</div>
+    <div class="add-form" style="border-color:${col};">
+      <div class="ft" style="color:${col};">Add Entry — ${currentCategory}</div>
       <div class="field-row">
         <div class="field">
           <label for="amtInput">Amount (₹)</label>
@@ -334,11 +353,11 @@ async function loadCategory(){
         <label for="remarkInput">Remark — where was this spent?</label>
         <input type="text" id="remarkInput" placeholder="e.g. Grocery, EMI, staff salary...">
       </div>
-      <button type="button" class="add-btn" id="addEntryBtn">Add Entry</button>
+      <button type="button" class="add-btn" id="addEntryBtn" style="background:${col};">Add Entry</button>
       <div class="form-msg" id="formMsg"></div>
     </div>
 
-    <button type="button" class="hist-btn" id="viewHistoryBtn" style="width:100%; padding:12px;">📜 View Full History</button>
+    <button type="button" class="hist-btn" id="viewHistoryBtn" style="width:100%; padding:12px; border-color:${col}; color:${col};">📜 View Full History</button>
   `;
 
   document.getElementById('monthPicker').addEventListener('change', (e)=>{
@@ -433,13 +452,15 @@ async function loadHistory(){
   rows.forEach(r => { (byDate[r.date] = byDate[r.date] || []).push(r); });
   const dateKeys = Object.keys(byDate).sort().reverse();
 
+  const col = catColor(currentCategory);
+
   const groupsHtml = dateKeys.length ? dateKeys.map(dateKey => `
     <div class="date-group">
       <div class="date-lbl">${fmtDate(dateKey)}</div>
       ${byDate[dateKey].map(r => `
-        <div class="entry">
+        <div class="entry" style="border-left-color:${col};">
           <button class="del" onclick="deleteEntry(${r.id})">✕</button>
-          <div class="amt">${fmtMoney(r.amount)}</div>
+          <div class="amt" style="color:${col};">${fmtMoney(r.amount)}</div>
           <div class="remark">${escHtml(r.remark)}</div>
         </div>
       `).join('')}
@@ -448,17 +469,17 @@ async function loadHistory(){
 
   wrap.innerHTML = `
     <div class="hist-header">
-      <div class="hist-title">History — ${currentCategory}</div>
+      <div class="hist-title" style="color:${col};">History — ${currentCategory}</div>
       <div class="back-link" onclick="closeHistory()">← Back</div>
     </div>
 
-    <div class="hist-nav">
-      <button type="button" onclick="shiftHistoryMonth(-1)">‹</button>
+    <div class="hist-nav" style="border-color:${col};">
+      <button type="button" onclick="shiftHistoryMonth(-1)" style="border-color:${col}; color:${col};">‹</button>
       <div style="text-align:center;">
         <div class="month-name">${monthLabel(historyMonth)}</div>
-        <div class="month-total">${fmtMoney(total)} total</div>
+        <div class="month-total" style="color:${col};">${fmtMoney(total)} total</div>
       </div>
-      <button type="button" onclick="shiftHistoryMonth(1)">›</button>
+      <button type="button" onclick="shiftHistoryMonth(1)" style="border-color:${col}; color:${col};">›</button>
     </div>
 
     ${groupsHtml}
