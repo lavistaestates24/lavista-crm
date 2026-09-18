@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deep Sir — Ledger</title>
+<style>
+  :root{
+    --ink:#15120e;
+    --panel:#1d1812;
+    --panel-2:#241d15;
+    --line:rgba(201,162,75,0.22);
+    --gold:#C9A24B;
+    --cream:#F2EBDD;
+    --muted:rgba(242,235,221,0.55);
+    --red:#C97757;
+    --green:#7BA37B;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    min-height:100vh;
+    background:
+      radial-gradient(900px 500px at 15% -10%, rgba(201,162,75,0.08), transparent 60%),
+      var(--ink);
+    color:var(--cream);
+    font-family:'Trebuchet MS', 'Segoe UI', sans-serif;
+  }
+  .wrap{max-width:640px; margin:0 auto; padding:28px 18px 70px;}
+
+  /* ---------- PIN GATE ---------- */
+  .gate{
+    min-height:100vh; display:flex; align-items:center; justify-content:center;
+    flex-direction:column; padding:20px;
+  }
+  .gate .mark{ font-family:'Georgia', serif; font-size:22px; letter-spacing:0.08em; color:var(--gold); margin-bottom:6px; }
+  .gate .sub{ font-size:12.5px; color:var(--muted); margin-bottom:28px; }
+  .gate input{
+    width:220px; text-align:center; letter-spacing:0.3em; font-size:20px;
+    padding:14px; background:var(--panel); border:1px solid var(--line); border-radius:4px;
+    color:var(--cream); margin-bottom:14px;
+  }
+  .gate button{
+    padding:12px 32px; background:var(--gold); color:#1a1a1a; border:none; border-radius:4px;
+    font-weight:700; font-size:13px; letter-spacing:0.04em; cursor:pointer; text-transform:uppercase;
+  }
+  .gate .err{ color:var(--red); font-size:12.5px; margin-top:12px; min-height:16px; }
+
+  /* ---------- HEADER ---------- */
+  .app{ display:none; }
+  .app.show{ display:block; }
+  .header{
+    display:flex; justify-content:space-between; align-items:baseline;
+    border-bottom:1px solid var(--line); padding-bottom:16px; margin-bottom:22px;
+  }
+  .header .title{ font-family:'Georgia', serif; font-size:20px; color:var(--gold); letter-spacing:0.02em; }
+  .header .today{ font-size:11.5px; color:var(--muted); }
+
+  /* ---------- CATEGORY TABS ---------- */
+  .tabs{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:24px; }
+  .tab{
+    padding:9px 13px; background:var(--panel); border:1px solid var(--line); border-radius:20px;
+    font-size:11.5px; color:var(--muted); cursor:pointer; white-space:nowrap;
+  }
+  .tab.active{ background:var(--gold); color:#1a1a1a; border-color:var(--gold); font-weight:700; }
+
+  /* ---------- OVERVIEW CARD ---------- */
+  .overview{
+    background:var(--panel); border:1px solid var(--line); border-radius:6px;
+    padding:18px 20px; margin-bottom:22px;
+  }
+  .overview .lbl{ font-size:10.5px; text-transform:uppercase; letter-spacing:0.08em; color:var(--muted); margin-bottom:10px; }
+  .ov-row{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:8px 0; border-bottom:1px solid rgba(201,162,75,0.1); font-size:13px;
+  }
+  .ov-row:last-child{ border-bottom:none; }
+  .ov-row .amt{ font-family:'Georgia', serif; font-weight:700; color:var(--gold); }
+  .ov-total{
+    display:flex; justify-content:space-between; align-items:baseline;
+    margin-top:12px; padding-top:12px; border-top:1px solid var(--line);
+  }
+  .ov-total .amt{ font-family:'Georgia', serif; font-size:22px; color:var(--gold); font-weight:700; }
+
+  /* ---------- MONTH PICKER ---------- */
+  .month-row{ display:flex; align-items:center; gap:10px; margin-bottom:18px; }
+  .month-row label{ font-size:11px; text-transform:uppercase; letter-spacing:0.06em; color:var(--muted); }
+  .month-row input{
+    background:var(--panel); border:1px solid var(--line); border-radius:4px;
+    color:var(--cream); padding:8px 10px; font-family:inherit; font-size:13px;
+  }
+  .cat-total{ margin-left:auto; font-family:'Georgia', serif; font-size:16px; color:var(--gold); font-weight:700; }
+
+  /* ---------- ADD FORM ---------- */
+  .add-form{
+    background:var(--panel); border:1px solid var(--line); border-radius:6px;
+    padding:18px 20px; margin-bottom:24px;
+  }
+  .add-form .ft{ font-size:13px; font-weight:700; margin-bottom:14px; color:var(--cream); }
+  .field-row{ display:flex; gap:10px; margin-bottom:10px; }
+  .field{ flex:1; }
+  .field label{ display:block; font-size:10.5px; text-transform:uppercase; letter-spacing:0.06em; color:var(--muted); margin-bottom:5px; }
+  .field input{
+    width:100%; padding:10px 11px; background:var(--panel-2); border:1px solid var(--line);
+    border-radius:4px; color:var(--cream); font-family:inherit; font-size:13.5px;
+  }
+  .add-btn{
+    width:100%; margin-top:6px; padding:12px; background:var(--gold); color:#1a1a1a;
+    border:none; border-radius:4px; font-weight:700; font-size:13px; letter-spacing:0.03em;
+    cursor:pointer; text-transform:uppercase;
+  }
+  .form-msg{ font-size:12px; margin-top:8px; min-height:16px; }
+  .form-msg.err{ color:var(--red); }
+  .form-msg.ok{ color:var(--green); }
+
+  /* ---------- ENTRY LIST ---------- */
+  .list-title{ font-size:13px; font-weight:700; margin-bottom:10px; color:var(--cream); }
+  .entry{
+    background:var(--panel); border:1px solid var(--line); border-left:3px solid var(--gold);
+    border-radius:4px; padding:12px 14px; margin-bottom:8px; position:relative;
+  }
+  .entry .amt{ font-family:'Georgia', serif; font-size:17px; font-weight:700; color:var(--gold); }
+  .entry .remark{ font-size:13px; color:var(--cream); margin-top:3px; }
+  .entry .meta{ font-size:11px; color:var(--muted); margin-top:6px; }
+  .entry .del{
+    position:absolute; top:10px; right:10px; background:none; border:none;
+    color:var(--muted); cursor:pointer; font-size:14px;
+  }
+  .empty{ text-align:center; padding:30px 0; color:var(--muted); font-size:13px; }
+</style>
+</head>
+<body>
+
+<!-- PIN GATE -->
+<div class="gate" id="gateScreen">
+  <div class="mark">LAVISTA</div>
+  <div class="sub">Private Ledger</div>
+  <input type="password" id="pinInput" maxlength="6" inputmode="numeric" placeholder="••••">
+  <button type="button" id="unlockBtn">Unlock</button>
+  <div class="err" id="gateErr"></div>
+</div>
+
+<!-- APP -->
+<div class="app" id="appScreen">
+  <div class="wrap">
+    <div class="header">
+      <div class="title">Private Ledger</div>
+      <div class="today" id="todayLabel"></div>
+    </div>
+
+    <div class="tabs" id="tabsRow"></div>
+
+    <div id="overviewSection"></div>
+
+    <div id="categorySection"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+/* ============================================================
+   SETUP — same pattern as the attendance app.
+   SQL to run once in Supabase SQL editor:
+
+   create table if not exists deep_ledger (
+     id bigint generated always as identity primary key,
+     category text not null,
+     amount numeric not null,
+     remark text not null,
+     date date not null,
+     created_at timestamptz default now()
+   );
+   alter table deep_ledger enable row level security;
+   create policy "public read/write" on deep_ledger for all using (true) with check (true);
+
+   ============================================================ */
+const SUPABASE_URL = "https://dfduzpsnzruzsdjipgww.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_LA6lqjm2yy7DzCDURwjUjg_dAW1-vki";
+const LEDGER_PIN = "2468"; // change this to whatever Deep Sir wants
+
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const CATEGORIES = [
+  "Deep Personal Expense",
+  "Deesa Home Expense",
+  "Amber Salon Expense",
+  "Lavista Estate Expense + Salary",
+  "Lavista Marketing Expense + Salary"
+];
+
+let currentCategory = CATEGORIES[0];
+let currentMonth = new Date().toISOString().slice(0,7);
+
+function pad(n){ return n.toString().padStart(2,'0'); }
+function todayStr(){
+  const d = new Date();
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+function fmtMoney(n){ return '₹' + Number(n).toLocaleString('en-IN', {maximumFractionDigits:0}); }
+function fmtDate(d){
+  return new Date(d).toLocaleDateString('en-IN', {day:'numeric', month:'short', year:'numeric'});
+}
+
+document.getElementById('todayLabel').textContent =
+  new Date().toLocaleDateString('en-IN', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+
+// ---------- PIN gate ----------
+document.getElementById('unlockBtn').addEventListener('click', unlock);
+document.getElementById('pinInput').addEventListener('keydown', (e)=>{ if(e.key === 'Enter') unlock(); });
+
+function unlock(){
+  const val = document.getElementById('pinInput').value;
+  if(val === LEDGER_PIN){
+    document.getElementById('gateScreen').style.display = 'none';
+    document.getElementById('appScreen').classList.add('show');
+    init();
+  } else {
+    document.getElementById('gateErr').textContent = 'Wrong PIN.';
+  }
+}
+
+// ---------- Tabs ----------
+function renderTabs(){
+  document.getElementById('tabsRow').innerHTML = CATEGORIES.map(c =>
+    `<div class="tab${c === currentCategory ? ' active' : ''}" onclick="switchCategory('${c.replace(/'/g,"\\'")}')">${c}</div>`
+  ).join('');
+}
+function switchCategory(c){
+  currentCategory = c;
+  renderTabs();
+  loadCategory();
+}
+window.switchCategory = switchCategory;
+
+// ---------- Overview (all categories, current month) ----------
+async function loadOverview(){
+  const start = currentMonth + '-01';
+  const [y,m] = currentMonth.split('-').map(Number);
+  const end = `${currentMonth}-${pad(new Date(y, m, 0).getDate())}`;
+
+  const { data, error } = await sb.from('deep_ledger').select('*').gte('date', start).lte('date', end);
+  const rows = data || [];
+
+  const byCategory = {};
+  CATEGORIES.forEach(c => byCategory[c] = 0);
+  rows.forEach(r => { byCategory[r.category] = (byCategory[r.category] || 0) + Number(r.amount); });
+  const grandTotal = Object.values(byCategory).reduce((a,b)=>a+b, 0);
+
+  const ovRows = CATEGORIES.map(c =>
+    `<div class="ov-row"><span>${c}</span><span class="amt">${fmtMoney(byCategory[c])}</span></div>`
+  ).join('');
+
+  document.getElementById('overviewSection').innerHTML = `
+    <div class="overview">
+      <div class="lbl">Overview — ${monthLabel(currentMonth)}</div>
+      ${ovRows}
+      <div class="ov-total"><span>Grand Total</span><span class="amt">${fmtMoney(grandTotal)}</span></div>
+    </div>
+  `;
+}
+
+function monthLabel(m){
+  const [y,mo] = m.split('-').map(Number);
+  return new Date(y, mo-1, 1).toLocaleDateString('en-IN', {month:'long', year:'numeric'});
+}
+
+// ---------- Category view (add form + list) ----------
+async function loadCategory(){
+  const start = currentMonth + '-01';
+  const [y,m] = currentMonth.split('-').map(Number);
+  const end = `${currentMonth}-${pad(new Date(y, m, 0).getDate())}`;
+
+  const { data, error } = await sb.from('deep_ledger')
+    .select('*').eq('category', currentCategory)
+    .gte('date', start).lte('date', end)
+    .order('date', {ascending:false});
+  const rows = data || [];
+  const total = rows.reduce((s,r)=>s+Number(r.amount), 0);
+
+  const entriesHtml = rows.length ? rows.map(r => `
+    <div class="entry">
+      <button class="del" onclick="deleteEntry(${r.id})">✕</button>
+      <div class="amt">${fmtMoney(r.amount)}</div>
+      <div class="remark">${escHtml(r.remark)}</div>
+      <div class="meta">${fmtDate(r.date)}</div>
+    </div>
+  `).join('') : `<div class="empty">No entries yet for ${currentCategory} this month.</div>`;
+
+  document.getElementById('categorySection').innerHTML = `
+    <div class="month-row">
+      <label for="monthPicker">Month</label>
+      <input type="month" id="monthPicker" value="${currentMonth}">
+      <div class="cat-total">${fmtMoney(total)}</div>
+    </div>
+
+    <div class="add-form">
+      <div class="ft">Add Entry — ${currentCategory}</div>
+      <div class="field-row">
+        <div class="field">
+          <label for="amtInput">Amount (₹)</label>
+          <input type="number" id="amtInput" placeholder="e.g. 5000">
+        </div>
+        <div class="field">
+          <label for="dateInput">Date</label>
+          <input type="date" id="dateInput" value="${todayStr()}">
+        </div>
+      </div>
+      <div class="field">
+        <label for="remarkInput">Remark — where was this spent?</label>
+        <input type="text" id="remarkInput" placeholder="e.g. Grocery, EMI, staff salary...">
+      </div>
+      <button type="button" class="add-btn" id="addEntryBtn">Add Entry</button>
+      <div class="form-msg" id="formMsg"></div>
+    </div>
+
+    <div class="list-title">Entries — ${monthLabel(currentMonth)}</div>
+    ${entriesHtml}
+  `;
+
+  document.getElementById('monthPicker').addEventListener('change', (e)=>{
+    currentMonth = e.target.value;
+    loadOverview();
+    loadCategory();
+  });
+  document.getElementById('addEntryBtn').addEventListener('click', addEntry);
+}
+
+async function addEntry(){
+  const amt = parseFloat(document.getElementById('amtInput').value);
+  const date = document.getElementById('dateInput').value;
+  const remark = document.getElementById('remarkInput').value.trim();
+  const msg = document.getElementById('formMsg');
+
+  if(!amt || amt <= 0){
+    msg.textContent = 'Enter a valid amount.';
+    msg.className = 'form-msg err';
+    return;
+  }
+  if(!remark){
+    msg.textContent = 'Remark is required — write where the money was spent.';
+    msg.className = 'form-msg err';
+    return;
+  }
+  if(!date){
+    msg.textContent = 'Select a date.';
+    msg.className = 'form-msg err';
+    return;
+  }
+
+  msg.textContent = 'Saving…';
+  msg.className = 'form-msg';
+
+  const { error } = await sb.from('deep_ledger').insert({
+    category: currentCategory, amount: amt, remark: remark, date: date
+  });
+
+  if(error){
+    msg.textContent = 'Could not save. Try again.';
+    msg.className = 'form-msg err';
+  } else {
+    msg.textContent = 'Saved!';
+    msg.className = 'form-msg ok';
+    setTimeout(()=>{ loadOverview(); loadCategory(); }, 500);
+  }
+}
+
+async function deleteEntry(id){
+  if(!confirm('Delete this entry?')) return;
+  await sb.from('deep_ledger').delete().eq('id', id);
+  loadOverview();
+  loadCategory();
+}
+window.deleteEntry = deleteEntry;
+
+function escHtml(s){
+  return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function init(){
+  renderTabs();
+  loadOverview();
+  loadCategory();
+}
+</script>
+</body>
+</html>
