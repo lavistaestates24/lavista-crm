@@ -5,20 +5,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lavista Attendance</title>
 <link rel="manifest" href="./manifest.json">
-<meta name="theme-color" content="#2B2620">
+<meta name="theme-color" content="#F7F4EF">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Attendance">
 <style>
   :root{
-    --ink:#1A1A1A;
-    --brown:#2B2620;
-    --brown-2:#3A332A;
-    --gold:#C9A24B;
-    --gold-2:#C9A84C;
-    --cream:#F5F1E8;
-    --line:rgba(201,162,75,0.25);
+    --ink:#F7F4EF;
+    --brown:#FFFFFF;
+    --brown-2:#EDEAE1;
+    --gold:#2F6F68;
+    --gold-2:#2F6F68;
+    --cream:#2A2620;
+    --line:rgba(47,111,104,0.25);
     --good:#7BA37B;
     --late:#C97757;
   }
@@ -27,7 +27,7 @@
     margin:0;
     min-height:100vh;
     background:
-      radial-gradient(1200px 600px at 20% -10%, rgba(201,162,75,0.10), transparent 60%),
+      radial-gradient(1200px 600px at 20% -10%, rgba(47,111,104,0.10), transparent 60%),
       var(--ink);
     color:var(--cream);
     font-family:'Georgia', 'Iowan Old Style', serif;
@@ -54,7 +54,7 @@
   .brand .tag{
     font-family:'Trebuchet MS', sans-serif;
     font-size:11px;
-    color:rgba(245,241,232,0.45);
+    color:rgba(42,38,32,0.45);
   }
   .card{
     background:var(--brown);
@@ -83,7 +83,7 @@
   .date{
     font-family:'Trebuchet MS', sans-serif;
     font-size:13px;
-    color:rgba(245,241,232,0.55);
+    color:rgba(42,38,32,0.55);
     margin-bottom:26px;
     letter-spacing:0.03em;
   }
@@ -93,7 +93,7 @@
     font-size:11px;
     letter-spacing:0.1em;
     text-transform:uppercase;
-    color:rgba(245,241,232,0.5);
+    color:rgba(42,38,32,0.5);
     margin-bottom:8px;
   }
   select{
@@ -120,7 +120,7 @@
     font-family:'Trebuchet MS', sans-serif;
     font-size:13px;
   }
-  .status-row .lab{color:rgba(245,241,232,0.5);}
+  .status-row .lab{color:rgba(42,38,32,0.5);}
   .pill{
     padding:4px 10px;
     border-radius:20px;
@@ -129,10 +129,10 @@
     text-transform:uppercase;
     font-weight:700;
   }
-  .pill.wait{background:rgba(245,241,232,0.08); color:rgba(245,241,232,0.6);}
+  .pill.wait{background:rgba(42,38,32,0.08); color:rgba(42,38,32,0.6);}
   .pill.in{background:rgba(123,163,123,0.18); color:var(--good);}
   .pill.late{background:rgba(201,119,87,0.18); color:var(--late);}
-  .pill.done{background:rgba(201,162,75,0.18); color:var(--gold);}
+  .pill.done{background:rgba(47,111,104,0.18); color:var(--gold);}
 
   .btns{display:flex; gap:12px;}
   button{
@@ -157,7 +157,7 @@
     margin-top:16px;
     font-family:'Trebuchet MS', sans-serif;
     font-size:12.5px;
-    color:rgba(245,241,232,0.55);
+    color:rgba(42,38,32,0.55);
     text-align:center;
     min-height:18px;
   }
@@ -196,7 +196,7 @@
     font-size:11px;
     letter-spacing:0.08em;
     text-transform:uppercase;
-    color:rgba(245,241,232,0.35);
+    color:rgba(42,38,32,0.35);
     text-decoration:none;
     cursor:pointer;
   }
@@ -217,7 +217,7 @@
   .back{
     font-family:'Trebuchet MS', sans-serif;
     font-size:11px;
-    color:rgba(245,241,232,0.5);
+    color:rgba(42,38,32,0.5);
     cursor:pointer;
     text-transform:uppercase;
     letter-spacing:0.06em;
@@ -237,18 +237,18 @@
   th{
     text-align:left;
     padding:8px 6px;
-    color:rgba(245,241,232,0.45);
+    color:rgba(42,38,32,0.45);
     text-transform:uppercase;
     font-size:10px;
     letter-spacing:0.06em;
     border-bottom:1px solid var(--line);
   }
-  td{padding:9px 6px; border-bottom:1px solid rgba(201,162,75,0.1);}
+  td{padding:9px 6px; border-bottom:1px solid rgba(47,111,104,0.1);}
   .tbl-scroll{max-height:420px; overflow-y:auto; margin-top:10px;}
   .empty{
     text-align:center;
     padding:30px 0;
-    color:rgba(245,241,232,0.35);
+    color:rgba(42,38,32,0.35);
     font-family:'Trebuchet MS', sans-serif;
     font-size:13px;
   }
@@ -276,7 +276,7 @@
 
       <div id="pinFallbackWrap" style="display:none; margin-bottom:14px;">
         <label for="pinCheckInput" style="display:block; font-size:11px; text-transform:uppercase; letter-spacing:0.1em;
-               color:rgba(245,241,232,0.5); margin-bottom:8px;">Your PIN (fingerprint fallback)</label>
+               color:rgba(42,38,32,0.5); margin-bottom:8px;">Your PIN (fingerprint fallback)</label>
         <input type="password" id="pinCheckInput" maxlength="6" inputmode="numeric" placeholder="••••"
                style="width:100%; padding:12px; background:var(--brown-2); border:1px solid var(--line);
                       border-radius:3px; color:var(--cream); font-family:'Trebuchet MS', sans-serif;
@@ -285,13 +285,13 @@
 
       <div id="fpWrap" style="display:none; margin-bottom:14px;">
         <div id="fpNotRegistered" style="display:none;">
-          <p style="font-family:'Trebuchet MS', sans-serif; font-size:12.5px; color:rgba(245,241,232,0.6); margin:0 0 8px;">
+          <p style="font-family:'Trebuchet MS', sans-serif; font-size:12.5px; color:rgba(42,38,32,0.6); margin:0 0 8px;">
             First time here — register your fingerprint/Face on this device.
           </p>
           <button type="button" id="fpRegisterBtn" class="btn-out" style="width:100%;">📱 Register Fingerprint</button>
         </div>
         <div id="fpRegistered" style="display:none;">
-          <p style="font-family:'Trebuchet MS', sans-serif; font-size:12.5px; color:rgba(245,241,232,0.6); margin:0;">
+          <p style="font-family:'Trebuchet MS', sans-serif; font-size:12.5px; color:rgba(42,38,32,0.6); margin:0;">
             🔒 Fingerprint/Face will be verified as soon as you press Punch In/Out.
           </p>
         </div>
@@ -304,7 +304,7 @@
 
       <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-bottom:22px; margin-top:-8px;">
         <input type="checkbox" id="fieldDutyCheck" style="width:16px;height:16px;accent-color:var(--gold);">
-        <span style="font-family:'Trebuchet MS', sans-serif; font-size:12.5px; color:rgba(245,241,232,0.6);
+        <span style="font-family:'Trebuchet MS', sans-serif; font-size:12.5px; color:rgba(42,38,32,0.6);
                      text-transform:none; letter-spacing:normal;">
           On a shoot / field duty today (not coming to office)
         </span>
@@ -325,7 +325,7 @@
 
       <div style="margin-bottom:14px;">
         <label style="display:block; font-family:'Trebuchet MS', sans-serif; font-size:11px; letter-spacing:0.1em;
-               text-transform:uppercase; color:rgba(245,241,232,0.5); margin-bottom:8px;">
+               text-transform:uppercase; color:rgba(42,38,32,0.5); margin-bottom:8px;">
           Take a photo of the office door (mandatory)
         </label>
         <input type="file" id="photoCapture" accept="image/*" capture="environment" style="display:none;">
@@ -1376,7 +1376,7 @@ async function loadAdminData(date){
       <td>${hours}</td>
       <td>${locLinks}</td>
       <td>${photos}</td>
-      <td style="color:rgba(245,241,232,0.6)">${r.remarks || '--'}</td>
+      <td style="color:rgba(42,38,32,0.6)">${r.remarks || '--'}</td>
     </tr>`;
   }).join('');
 
@@ -1577,7 +1577,7 @@ async function loadFullSheet(monthStr){
       <td>${r.inT || '--'}</td>
       <td>${r.outT || '--'}</td>
       <td>${r.hours || '--'}</td>
-      <td style="color:rgba(245,241,232,0.6)">${r.remarks || '--'}</td>
+      <td style="color:rgba(42,38,32,0.6)">${r.remarks || '--'}</td>
     </tr>`;
   }).join('');
 
@@ -1676,13 +1676,13 @@ async function loadEmployeeReport(name){
     const statusColor = status === 'Week Off' ? 'var(--gold)' : (status === 'Half Day' ? 'var(--late)' : (status === 'Absent' ? 'var(--late)' : 'inherit'));
     const locLinks = r ? [mapLink(r.in_lat, r.in_lng, 'In'), mapLink(r.out_lat, r.out_lng, 'Out')].filter(Boolean).join(' &nbsp; ') : '';
     rows += `<tr>
-      <td>${dateStr} <span style="color:rgba(245,241,232,0.4)">(${dayName})</span></td>
+      <td>${dateStr} <span style="color:rgba(42,38,32,0.4)">(${dayName})</span></td>
       <td style="color:${statusColor}">${status}</td>
       <td>${r ? fmtTime(r.punch_in) : '--'}${late ? ' <span style="color:var(--late)">•late</span>' : ''}</td>
       <td>${r ? fmtTime(r.punch_out) : '--'}</td>
       <td>${hours}</td>
       <td>${locLinks || '--'}</td>
-      <td style="color:rgba(245,241,232,0.6)">${remarks}</td>
+      <td style="color:rgba(42,38,32,0.6)">${remarks}</td>
     </tr>`;
     d.setDate(d.getDate() - 1);
   }
