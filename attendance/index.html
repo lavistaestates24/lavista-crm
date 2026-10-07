@@ -613,14 +613,29 @@ function addMinutesToTimeStr(hhmm, addMins){
   return `${pad(Math.floor(total/60))}:${pad(total%60)}`;
 }
 function getLocation(){
-  return new Promise((resolve)=>{
-    if(!navigator.geolocation){ resolve({lat:null,lng:null,denied:true}); return; }
+  // Tries high-accuracy GPS first (15s), then falls back to network/WiFi location (15s).
+  // Returns errCode: 1 = permission blocked, 2/3 = no signal / timed out.
+  const attempt = (opts) => new Promise((resolve)=>{
     navigator.geolocation.getCurrentPosition(
-      pos => resolve({lat:pos.coords.latitude, lng:pos.coords.longitude, denied:false}),
-      () => resolve({lat:null,lng:null,denied:true}),
-      {timeout:8000, enableHighAccuracy:true}
+      pos => resolve({lat:pos.coords.latitude, lng:pos.coords.longitude, denied:false, errCode:0}),
+      err => resolve({lat:null, lng:null, denied:true, errCode: err && err.code ? err.code : 2}),
+      opts
     );
   });
+  return (async ()=>{
+    if(!navigator.geolocation) return {lat:null,lng:null,denied:true,errCode:2};
+    let r = await attempt({timeout:15000, enableHighAccuracy:true, maximumAge:0});
+    if(r.lat === null && r.errCode !== 1){
+      r = await attempt({timeout:15000, enableHighAccuracy:false, maximumAge:60000});
+    }
+    return r;
+  })();
+}
+function locationErrorText(loc, action){
+  if(loc.errCode === 1){
+    return `Location is blocked for this page. Tap the lock/settings icon next to the web address, set Location to "Allow", then try again to punch ${action}. (Also open the link in Chrome/Safari, not inside WhatsApp.)`;
+  }
+  return `Couldn't get your location signal. Turn ON phone GPS/Location, move near a window or open area, wait a few seconds and try again to punch ${action}.`;
 }
 
 // Distance between two GPS points in meters (Haversine formula)
@@ -825,10 +840,13 @@ document.getElementById('fpRegisterBtn').addEventListener('click', async ()=>{
     if(error) throw error;
     currentCredentialId = credentialId;
     updateFingerprintUI();
-    msgBox.textContent = 'Registered! Ab isi device se punch kar sakte ho.';
+    msgBox.textContent = 'Registered! You can now punch from this phone.';
     msgBox.className = 'msg ok';
   } catch(err){
-    msgBox.textContent = 'Registration was cancelled or failed. Try again.';
+    const nm = err && err.name ? err.name : '';
+    msgBox.textContent = nm === 'NotAllowedError'
+      ? 'Registration cancelled or blocked. Make sure a screen lock/fingerprint is set on this phone, and that you opened this link in Chrome/Safari (not WhatsApp), then try again.'
+      : 'Registration failed on this phone/browser (' + (nm || 'error') + '). Open the link in Chrome/Safari and make sure a screen lock/fingerprint is set up.';
     msgBox.className = 'msg err';
   }
 });
@@ -1026,7 +1044,7 @@ btnIn.addEventListener('click', async ()=>{
   const loc = await getLocation();
 
   if(loc.denied || loc.lat === null){
-    msgBox.textContent = 'Please allow location access to punch in.';
+    msgBox.textContent = locationErrorText(loc, 'in');
     msgBox.className = 'msg err';
     btnIn.disabled = false;
     return;
@@ -1119,7 +1137,7 @@ btnOut.addEventListener('click', async ()=>{
   const loc = await getLocation();
 
   if(loc.denied || loc.lat === null){
-    msgBox.textContent = 'Please allow location access to punch out.';
+    msgBox.textContent = locationErrorText(loc, 'out');
     msgBox.className = 'msg err';
     btnOut.disabled = false;
     return;
