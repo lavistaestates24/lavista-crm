@@ -379,6 +379,7 @@ function renderTabs(){
   const tabs=[
     {id:"update",label:"📝 Evening Update"},
     {id:"attendance",label:"🕐 Attendance"},
+    ...(typeof tcHasAccess==="function"&&tcHasAccess(CU)?[{id:"telecaller",label:"📞 Telecalling"}]:[]),
     {id:"clients",label:"📊 Client Tracker"},
     {id:"planner",label:"📅 Content Planner"},
     {id:"shoot",label:"📸 Shoot Checklist"},
@@ -407,6 +408,7 @@ function renderContent(){
   else if(TAB==="hrexpenses"){c.innerHTML='<div class="loading">⏳ Loading...</div>';loadHrExpenses();}
   else if(TAB==="attendance"){c.innerHTML='<div class="loading">⏳ Loading...</div>';loadAttendance();}
   else if(TAB==="attreport"){c.innerHTML='<div class="loading">⏳ Loading...</div>';loadAttReport();}
+  else if(TAB==="telecaller"){c.innerHTML='<div class="loading">⏳ Loading...</div>';loadTelecaller();}
 }
 
 // ═══ UPDATE FORM ═══
@@ -1527,5 +1529,6 @@ async function autoMarkAbsent() {
   alert("✅ Marked absent/week-off for everyone who did not come!");
 }
 </script>
+<script src="telecaller.js"></script>
 </body>
 </html>
