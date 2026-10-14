@@ -525,7 +525,7 @@ const EMPLOYEES = [
   { name: "Akshay",  team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
   { name: "Nayan",   team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
   { name: "Aman",    team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
-  { name: "Shriya",  team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
+  { name: "Shriya",  team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday", active: false },
   { name: "Dipika",  team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
   { name: "Ashish",  team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
   { name: "Mahak",   team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
@@ -533,15 +533,16 @@ const EMPLOYEES = [
   { name: "Kamini", team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Wednesday" },
   { name: "Samiksha", team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday", active: false }, // left the company — kept for historical report lookup only
   { name: "Nimesh",   team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday", active: false }, // hidden from attendance sheet on request — still exists for admin lookup
-  { name: "Krish",    team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
+  { name: "Krish",    team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday", active: false },
   { name: "Vidhi",    team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
   { name: "Dipali",   team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
   { name: "Rutik",    team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
   { name: "Janvi",    team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
   { name: "Manisha",  team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
-  { name: "Pari",     team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
+  { name: "Pari",     team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday", active: false },
   { name: "Yashwini", team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
   { name: "Rinkal", team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
+  { name: "Rinku", team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
   { name: "Shivam", team: "Social Media", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
 
 
@@ -550,7 +551,7 @@ const EMPLOYEES = [
 
   // ---- Social Media Sales — same shift & week-off as Social Media team ----
   { name: "Vandita", team: "Social Media Sales", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
-  { name: "Zeel",    team: "Social Media Sales", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
+  { name: "Zeel",    team: "Social Media Sales", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday", active: false },
   { name: "Jhinal",  team: "Social Media Sales", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: "Sunday" },
 
   // ---- Real Estate team — mixed shifts (9:00 or 10:30), flexible weekly off ----
@@ -562,10 +563,10 @@ const EMPLOYEES = [
   { name: "Krutika",      team: "Real Estate", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: null, personalOffDay: "Monday" },
   { name: "Vaishali",     team: "Real Estate", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: null, personalOffDay: "Friday" },
   { name: "Anand Sir",    team: "Real Estate", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: null, personalOffDay: "Monday" },
-  { name: "Harsh",        team: "Real Estate", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: null, personalOffDay: "Tuesday" },
+  { name: "Harsh",        team: "Real Estate", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: null, personalOffDay: "Tuesday", active: false },
   { name: "Ashit",        team: "Real Estate", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: null, personalOffDay: "Wednesday" },
   { name: "Krunal",       team: "Real Estate", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: null, personalOffDay: "Tuesday" },
-  { name: "Devrajsinh",   team: "Real Estate", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: null, personalOffDay: "Thursday" }
+  { name: "Devrajsinh",   team: "Real Estate", shiftStart: "10:30", shiftEnd: "19:00", weeklyOff: null, personalOffDay: "Thursday", active: false },
   // add more employees here, same format
   // personalOffDay: employees with a FIXED individual weekly off get a Yes/No prompt
   // right after punching out the day before, asking to confirm tomorrow's week off.
