@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lavista Graphics Vote</title>
+<meta property="og:title" content="Lavista Graphics Vote">
+<meta property="og:description" content="Vote for your favourite post designs. You can pick more than one.">
+<meta property="og:image" content="https://lavistaestates24.github.io/lavista-crm/vote/img/post1.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Instrument+Sans:wght@400;500;600&display=swap">
+<style>
+:root{--bg:#F1F2F5;--surface:#fff;--sunk:#E6E8EE;--ink:#15171F;--muted:#5D6272;--line:#D9DCE4;--accent:#3346D3;--accent-ink:#fff;--accent-soft:#E3E6FB;--danger:#B42318;--ok:#067647;
+--display:"Bricolage Grotesque",system-ui,sans-serif;--body:"Instrument Sans","Segoe UI",system-ui,sans-serif}
+@media (prefers-color-scheme:dark){:root{--bg:#0F1117;--surface:#181B24;--sunk:#12141B;--ink:#ECEEF4;--muted:#9AA0B2;--line:#2A2F3C;--accent:#8592FF;--accent-ink:#0F1117;--accent-soft:#23284A;--danger:#F97066;--ok:#47CD89;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:28px max(16px,env(safe-area-inset-right)) 120px max(16px,env(safe-area-inset-left));display:flex;flex-direction:column;gap:22px}
+h1{font-family:var(--display);font-weight:800;font-size:clamp(28px,5vw,44px);line-height:1.05;margin:0;text-wrap:balance}
+.sub{color:var(--muted);margin:6px 0 0;max-width:62ch}
+label.name{display:flex;flex-direction:column;gap:6px;font-weight:600;max-width:420px}
+label.name input{font:inherit;padding:11px 12px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+@media (max-width:820px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:520px){.grid{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;transition:box-shadow .15s,border-color .15s}
+.card.on{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
+.card img{width:100%;aspect-ratio:4/5;object-fit:cover;display:block;background:var(--sunk);cursor:zoom-in}
+.foot{padding:12px 14px 14px;display:flex;flex-direction:column;gap:10px}
+.head{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.head h3{margin:0;font-family:var(--display);font-weight:600;font-size:19px}
+button{font:inherit;cursor:pointer;border-radius:9px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:8px 14px;font-weight:600}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+button:disabled{opacity:.5;cursor:not-allowed}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.bar{height:8px;border-radius:999px;background:var(--sunk);overflow:hidden}.bar span{display:block;height:100%;background:var(--accent)}
+.tally{display:flex;justify-content:space-between;font-size:13px;color:var(--muted)}
+.names{font-size:12px;color:var(--muted)}
+.dock{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);padding:12px max(16px,env(safe-area-inset-right)) calc(12px + env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
+.dock-in{max-width:1080px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.msg{font-size:14px;color:var(--muted)}.msg.ok{color:var(--ok);font-weight:600}.msg.err{color:var(--danger);font-weight:600}
+.lb{position:fixed;inset:0;background:rgba(10,12,18,.9);display:grid;place-items:center;padding:16px;z-index:9}
+.lb img{max-width:100%;max-height:90vh;border-radius:8px}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 id="title">Vote for your favourite graphics</h1>
+    <p class="sub" id="sub">Six post designs from our graphics test. Tap a post to see it full size. Tick every post you like (you can pick more than one), then press Submit. You can come back and change your votes.</p>
+  </header>
+  <label class="name" id="nameBox">Your name
+    <input id="name" type="text" maxlength="40" placeholder="e.g. Piyush" autocomplete="name">
+  </label>
+  <main class="grid" id="grid"></main>
+</div>
+<div class="dock" id="dock"><div class="dock-in">
+  <span class="msg" id="msg">0 posts selected</span>
+  <button class="primary" id="submit" type="button">Submit votes</button>
+</div></div>
+<div class="lb" id="lb" hidden><img id="lbImg" alt=""></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+const SUPABASE_URL="https://dfduzpsnzruzsdjipgww.supabase.co";
+const SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZHV6cHNuenJ1enNkamlwZ3d3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyMTA3NTEsImV4cCI6MjA5Nzc4Njc1MX0.5jIgdYKzFGRDZ2wfrn290zkSPumhs1goC1ekhWdO68I";
+const TABLE="post_votes";
+const POSTS=[1,2,3,4,5,6].map(n=>({id:"post"+n,n,img:"img/post"+n+".jpg"}));
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+const RESULTS=new URLSearchParams(location.search).get("results")==="deep";
+const $=id=>document.getElementById(id);
+let device;try{device=localStorage.getItem("lv_device")||crypto.randomUUID();localStorage.setItem("lv_device",device);}catch(e){device=crypto.randomUUID();}
+let picked=new Set();
+
+function lb(src){$("lbImg").src=src;$("lb").hidden=false;}
+$("lb").onclick=()=>$("lb").hidden=true;
+
+function renderVote(){
+  const g=$("grid");g.replaceChildren();
+  POSTS.forEach(p=>{
+    const on=picked.has(p.id);
+    const card=document.createElement("article");card.className="card"+(on?" on":"");
+    const img=document.createElement("img");img.src=p.img;img.alt="Post "+p.n;img.loading="lazy";img.onclick=()=>lb(p.img);
+    const foot=document.createElement("div");foot.className="foot";
+    const head=document.createElement("div");head.className="head";
+    const h=document.createElement("h3");h.textContent="Post "+p.n;
+    const b=document.createElement("button");b.type="button";b.className=on?"primary":"";b.textContent=on?"✓ Selected":"Vote";
+    b.onclick=()=>{on?picked.delete(p.id):picked.add(p.id);renderVote();};
+    head.append(h,b);foot.append(head);card.append(img,foot);g.append(card);
+  });
+  const m=$("msg");m.className="msg";m.textContent=picked.size===1?"1 post selected":picked.size+" posts selected";
+}
+
+async function loadMine(){
+  try{
+    const savedName=localStorage.getItem("lv_name");if(savedName)$("name").value=savedName;
+    const {data}=await sb.from(TABLE).select("voter_name,posts").eq("device_id",device).maybeSingle();
+    if(data){picked=new Set(data.posts||[]);$("name").value=data.voter_name;renderVote();}
+  }catch(e){}
+}
+
+$("submit").onclick=async()=>{
+  const name=$("name").value.trim(),m=$("msg");
+  if(!name){m.className="msg err";m.textContent="Enter your name first.";$("name").focus();return;}
+  if(!picked.size){m.className="msg err";m.textContent="Select at least one post.";return;}
+  $("submit").disabled=true;m.className="msg";m.textContent="Saving…";
+  const {error}=await sb.from(TABLE).upsert({device_id:device,voter_name:name,posts:[...picked],updated_at:new Date().toISOString()},{onConflict:"device_id"});
+  $("submit").disabled=false;
+  if(error){m.className="msg err";m.textContent="Vote didn't save. Check your internet and try again.";return;}
+  try{localStorage.setItem("lv_name",name);}catch(e){}
+  m.className="msg ok";m.textContent="Thanks "+name+"! Your "+picked.size+(picked.size===1?" vote is":" votes are")+" saved.";
+};
+
+async function renderResults(){
+  $("title").textContent="Graphics vote results";
+  $("sub").textContent="Live count. Each person can vote for more than one post. Refreshes every 10 seconds.";
+  $("nameBox").hidden=true;$("dock").hidden=true;
+  const {data,error}=await sb.from(TABLE).select("voter_name,posts");
+  if(error){$("sub").textContent="Couldn't load results.";return;}
+  const voters=data.length,c={};POSTS.forEach(p=>c[p.id]=[]);
+  data.forEach(r=>(r.posts||[]).forEach(id=>c[id]&&c[id].push(r.voter_name)));
+  const max=Math.max(0,...Object.values(c).map(a=>a.length));
+  const order=[...POSTS].sort((a,b)=>c[b.id].length-c[a.id].length);
+  const g=$("grid");g.replaceChildren();
+  order.forEach(p=>{
+    const n=c[p.id].length,pct=voters?Math.round(n*100/voters):0;
+    const card=document.createElement("article");card.className="card"+(n&&n===max?" on":"");
+    card.innerHTML='<img alt=""><div class="foot"><div class="head"><h3></h3><strong></strong></div><div class="bar"><span></span></div><div class="tally"><span></span><span></span></div><div class="names"></div></div>';
+    const img=card.querySelector("img");img.src=p.img;img.onclick=()=>lb(p.img);
+    card.querySelector("h3").textContent="Post "+p.n;
+    card.querySelector("strong").textContent=n+(n===1?" vote":" votes");
+    card.querySelector(".bar span").style.width=pct+"%";
+    const t=card.querySelectorAll(".tally span");t[0].textContent=pct+"% of "+voters+" voters";t[1].textContent=n&&n===max?"Leading":"";
+    card.querySelector(".names").textContent=c[p.id].join(", ");
+    g.append(card);
+  });
+}
+
+if(RESULTS){renderResults();setInterval(renderResults,10000);}else{renderVote();loadMine();}
+</script>
+</body>
+</html>
